@@ -1,9 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
+import { getAnthropicApiKey } from "@/lib/anthropic/client";
 import { GenerationError, runTool } from "@/lib/anthropic/generate";
 import { refundCredit, reserveCredit } from "@/lib/credits";
 import { FREE_CREDITS } from "@/lib/plans";
+import { getServiceRoleKey } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { generateRequestSchema } from "@/lib/tools";
@@ -24,6 +26,34 @@ type ErrorCode =
 
 function fail(status: number, code: ErrorCode, message: string, credits?: number | null) {
   return NextResponse.json({ error: { code, message }, credits }, { status });
+}
+
+/** Variables serveur indispensables aux outils. Renvoie la première qui manque. */
+function findConfigIssue(): string | null {
+  if (!getServiceRoleKey()) {
+    return "Configuration incomplète : la clé secrète Supabase (SUPABASE_SERVICE_ROLE_KEY) est absente ou invalide.";
+  }
+  if (!getAnthropicApiKey()) {
+    return "Configuration incomplète : la clé Anthropic (ANTHROPIC_API_KEY) est absente.";
+  }
+  return null;
+}
+
+function describeAnthropicConfigError(error: unknown): string | null {
+  if (error instanceof Anthropic.AuthenticationError) {
+    return "la clé Anthropic (ANTHROPIC_API_KEY) est refusée";
+  }
+  if (error instanceof Anthropic.PermissionDeniedError) {
+    return "la clé Anthropic n'a pas accès à ce modèle";
+  }
+  if (error instanceof Anthropic.NotFoundError) {
+    return "le modèle demandé est introuvable (ANTHROPIC_MODEL)";
+  }
+  // Compte sans crédit prépayé : l'API répond 400 avec ce message.
+  if (error instanceof Anthropic.BadRequestError && /credit balance/i.test(error.message)) {
+    return "le compte Anthropic n'a pas de crédit";
+  }
+  return null;
 }
 
 /**
@@ -61,7 +91,14 @@ export async function POST(request: Request) {
     return fail(400, "invalid_request", parsed.error.issues[0]?.message ?? "Requête invalide.");
   }
 
-  // 3. Plan et crédits
+  // 3. Configuration serveur : rien ne sert de réserver un crédit sans elle.
+  const configIssue = findConfigIssue();
+  if (configIssue) {
+    console.error(`[generate] ${configIssue}`);
+    return fail(500, "misconfigured", configIssue);
+  }
+
+  // 4. Plan et crédits
   const { data: profile } = await supabase
     .from("users")
     .select("plan")
@@ -87,7 +124,7 @@ export async function POST(request: Request) {
     }
   }
 
-  // 4. Génération
+  // 5. Génération
   try {
     const result = await runTool(parsed.data);
     return NextResponse.json({ result, plan, credits });
@@ -111,13 +148,16 @@ function toErrorResponse(error: unknown, creditNote: string, credits: number | n
     );
   }
 
-  // Clé absente, invalide ou sans accès au modèle : problème de configuration.
-  if (
-    error instanceof Anthropic.AuthenticationError ||
-    error instanceof Anthropic.PermissionDeniedError ||
-    error instanceof Anthropic.NotFoundError
-  ) {
-    return fail(500, "misconfigured", `Le service d'IA est mal configuré.${creditNote}`, credits);
+  // Clé refusée, sans accès au modèle, ou compte sans crédit : problème de
+  // configuration. Le message nomme la cause pour le propriétaire du site.
+  const configCause = describeAnthropicConfigError(error);
+  if (configCause) {
+    return fail(
+      500,
+      "misconfigured",
+      `Le service d'IA est mal configuré : ${configCause}.${creditNote}`,
+      credits,
+    );
   }
 
   // Limite de débit, surcharge ou coupure réseau : réessayable.
