@@ -35,10 +35,17 @@ outils demandent la configuration ci-dessous.
 2. **SQL Editor** : colle et exécute `supabase/migrations/0001_init.sql`.
    Il crée les tables `users`, `credits`, `saved_scripts`, les règles RLS, le trigger qui
    offre 3 crédits à l'inscription et les fonctions `consume_credit` / `refund_credit`.
-3. **Project Settings → API** : copie l'URL, la clé publique et la clé `service_role` dans `.env.local`.
+3. **Project Settings → API Keys** : copie la clé secrète dans `SUPABASE_SERVICE_ROLE_KEY`.
+   L'URL du projet et la clé « publishable » sont publiques : elles ont une valeur par
+   défaut dans `src/lib/supabase/config.ts`. `NEXT_PUBLIC_SUPABASE_URL` et
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` ne servent qu'à viser un autre projet ; une valeur mal
+   formée est ignorée.
 4. **Authentication → URL Configuration** :
    - Site URL : `https://ton-domaine.com` (ou `http://localhost:3000` en local)
-   - Redirect URLs : ajoute `https://ton-domaine.com/auth/callback`
+   - Redirect URLs : ajoute `https://ton-domaine.com/**`
+5. **Authentication → Sign In / Providers → Email** : le service d'e-mail par défaut de
+   Supabase n'écrit qu'aux membres du projet. Désactive « Confirm email », ou branche un
+   SMTP (Resend, Brevo…) pour garder la confirmation.
 
 La confirmation par e-mail est gérée : si elle est activée, l'utilisateur reçoit un lien qui
 revient sur `/auth/callback`.
