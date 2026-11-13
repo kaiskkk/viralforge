@@ -34,10 +34,32 @@ const ERROR_MESSAGES: Record<string, string> = {
   signup_disabled: "Les inscriptions sont momentanément fermées.",
   over_request_rate_limit: "Trop de tentatives. Réessaie dans quelques minutes.",
   over_email_send_rate_limit: "Trop d'e-mails envoyés. Réessaie dans quelques minutes.",
+  email_address_invalid: "Cette adresse e-mail n'est pas acceptée. Essaie avec une autre.",
+  email_address_not_authorized:
+    "L'e-mail de confirmation n'a pas pu être envoyé : le service d'e-mail par défaut de Supabase n'écrit qu'aux membres du projet.",
+  email_provider_disabled: "L'inscription par e-mail est désactivée.",
 };
 
-function describeError(error: { code?: string }): string {
-  return (error.code && ERROR_MESSAGES[error.code]) || "Une erreur est survenue. Réessaie.";
+const GENERIC_ERROR = "Une erreur est survenue. Réessaie.";
+
+type SupabaseAuthError = { code?: string; status?: number; name?: string; message?: string };
+
+function describeError(error: SupabaseAuthError): string {
+  const known = error.code ? ERROR_MESSAGES[error.code] : undefined;
+  if (known) return known;
+
+  // Cas imprévu (clé refusée, base injoignable, trigger en échec…) : trace côté
+  // serveur, et une référence à l'écran pour qu'une capture suffise au diagnostic.
+  console.error("[auth] Erreur Supabase non gérée", {
+    code: error.code,
+    status: error.status,
+    name: error.name,
+    message: error.message,
+  });
+
+  const reference = error.code ?? (error.status ? `HTTP ${error.status}` : error.name);
+  const detail = [reference, error.message?.slice(0, 140)].filter(Boolean).join(" : ");
+  return detail ? `${GENERIC_ERROR} (Détail : ${detail})` : GENERIC_ERROR;
 }
 
 function parseCredentials(formData: FormData) {
