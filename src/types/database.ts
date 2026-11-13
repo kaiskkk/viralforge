@@ -1,5 +1,5 @@
 /**
- * Types de la base Supabase, alignés sur supabase/migrations/0001_init.sql.
+ * Types de la base Supabase, alignés sur supabase/migrations/.
  * Pour les régénérer depuis le projet : `supabase gen types typescript`.
  */
 
@@ -65,6 +65,28 @@ export type Database = {
           balance?: number;
           lifetime_used?: number;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pending_upgrades: {
+        Row: {
+          email: string;
+          billing_provider: string;
+          billing_customer_id: string | null;
+          billing_subscription_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          billing_provider: string;
+          billing_customer_id?: string | null;
+          billing_subscription_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          billing_provider?: string;
+          billing_customer_id?: string | null;
+          billing_subscription_id?: string | null;
         };
         Relationships: [];
       };

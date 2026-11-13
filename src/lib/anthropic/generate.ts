@@ -12,7 +12,7 @@ import {
   type ToolOutputs,
 } from "@/lib/tools";
 
-import { getAnthropic, MODEL } from "./client";
+import { getAnthropic, MODEL, SUPPORTS_REFUSAL_FALLBACK } from "./client";
 import {
   ANTI_DROPOFF_SYSTEM,
   buildAntiDropoffMessage,
@@ -55,9 +55,10 @@ async function generateStructured<Schema extends z.ZodType>(options: {
       format: betaZodOutputFormat(options.schema),
     },
     // Si le modèle décline une requête à tort (filtre de sécurité), l'API la
-    // rejoue sur un modèle de repli dans le même appel.
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
+    // rejoue sur un modèle de repli dans le même appel, quand le modèle le permet.
+    ...(SUPPORTS_REFUSAL_FALLBACK
+      ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
+      : {}),
   });
 
   const message = await stream.finalMessage();

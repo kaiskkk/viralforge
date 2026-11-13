@@ -13,6 +13,13 @@ export const PRO_PRICE = process.env.NEXT_PUBLIC_PRO_PRICE ?? "19 €";
 export const CHECKOUT_URL =
   process.env.NEXT_PUBLIC_CHECKOUT_URL || "https://whop.com/checkout/plan_CPkJSKD2HKOZP";
 
+/**
+ * Identifiant du plan Whop vendu par le site (`plan_…`), lu dans le lien de
+ * paiement. Le webhook Whop ignore les paiements d'un autre plan. `null` si le
+ * lien ne pointe pas vers Whop.
+ */
+export const WHOP_PLAN_ID = CHECKOUT_URL.match(/plan_[A-Za-z0-9]+/)?.[0] ?? null;
+
 export function isPro(plan: Plan): boolean {
   return plan === "pro";
 }

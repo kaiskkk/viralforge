@@ -6,7 +6,7 @@ SaaS d'écriture de scripts pour vidéos courtes (TikTok, Reels, Shorts).
 - **Dashboard** avec trois outils branchés sur Claude via `POST /api/generate` :
   Cloneur de Structure Virale, Anti-Dropoff, Générateur de Série 7 jours.
 - **Comptes et données** sur Supabase (Auth + Postgres avec RLS).
-- **Plans** : `free` (3 crédits offerts) et `pro` (illimité), activé par webhook LemonSqueezy.
+- **Plans** : `free` (3 crédits offerts) et `pro` (illimité), activé par le webhook de paiement Whop.
 
 Stack : Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide, Supabase, SDK Anthropic, Zod.
 
@@ -32,9 +32,11 @@ outils demandent la configuration ci-dessous.
 ### 1. Supabase
 
 1. Crée un projet sur [supabase.com](https://supabase.com).
-2. **SQL Editor** : colle et exécute `supabase/migrations/0001_init.sql`.
-   Il crée les tables `users`, `credits`, `saved_scripts`, les règles RLS, le trigger qui
-   offre 3 crédits à l'inscription et les fonctions `consume_credit` / `refund_credit`.
+2. **SQL Editor** : colle et exécute `supabase/migrations/0001_init.sql`, puis
+   `0002_pending_upgrades.sql`. Le premier crée les tables `users`, `credits`,
+   `saved_scripts`, les règles RLS, le trigger qui offre 3 crédits à l'inscription et les
+   fonctions `consume_credit` / `refund_credit`. Le second ajoute les plans Pro en attente
+   (paiement reçu avant la création du compte).
 3. **Project Settings → API Keys** : copie la clé secrète dans `SUPABASE_SERVICE_ROLE_KEY`.
    L'URL du projet et la clé « publishable » sont publiques : elles ont une valeur par
    défaut dans `src/lib/supabase/config.ts`. `NEXT_PUBLIC_SUPABASE_URL` et
@@ -52,9 +54,13 @@ revient sur `/auth/callback`.
 
 ### 2. Anthropic
 
-Crée une clé sur [console.anthropic.com](https://console.anthropic.com) et renseigne
-`ANTHROPIC_API_KEY`. Le modèle par défaut est `claude-sonnet-5-5` ; `ANTHROPIC_MODEL` permet
-d'en changer (`claude-haiku-5-5` est plus rapide et moins cher).
+Crée une clé sur [platform.claude.com](https://platform.claude.com/settings/keys) et renseigne
+`ANTHROPIC_API_KEY`. L'API est facturée à l'usage : les nouveaux comptes reçoivent un crédit
+d'essai, puis le crédit s'achète sur la page Billing.
+
+Le modèle par défaut est `claude-haiku-5-5` (0,10 $ / 0,50 $ par million de tokens en entrée /
+sortie, soit moins d'un centime par génération). Pour privilégier la qualité d'écriture,
+renseigne `ANTHROPIC_MODEL=claude-sonnet-5-5` (2 $ / 10 $, environ vingt fois plus cher).
 
 ### 3. Paiement
 
@@ -62,14 +68,23 @@ Tous les boutons « Passer en Pro » du site ouvrent le lien de paiement Whop d�
 `src/lib/plans.ts` (`CHECKOUT_URL`). Pour le remplacer sans toucher au code, renseigne
 `NEXT_PUBLIC_CHECKOUT_URL`.
 
-**Activation du plan Pro.** Un paiement sur Whop ne passe pas le compte en `pro` tout seul :
-il n'y a pas encore de webhook Whop. En attendant, deux options :
+**Activation du plan Pro.** Le webhook `src/app/api/webhooks/whop/route.ts` passe le compte
+en `pro` après paiement et le repasse en `free` à la fin de l'abonnement. Dans Whop →
+**Developer → Webhooks → Create webhook** :
 
-- à la main : Supabase → Table Editor → `users` → passe `plan` à `pro` sur la ligne du client
-  (retrouve-le par son e-mail) ;
-- automatiquement : ajoute un webhook Whop sur le modèle de
-  `src/app/api/webhooks/lemonsqueezy/route.ts` (vérifier la signature, retrouver le compte
-  par e-mail, mettre à jour `users.plan`).
+- URL : `https://ton-domaine.com/api/webhooks/whop`
+- Version de l'API : `v1`
+- Événements : `payment.succeeded`, `membership.activated`, `membership.deactivated`
+- Secret (commence par `ws_`) : à copier dans `WHOP_WEBHOOK_SECRET`
+
+Le compte est retrouvé par l'e-mail utilisé au paiement : le client doit payer avec l'adresse
+de son compte ViralForge. S'il paie avant de s'inscrire, son plan Pro l'attend et s'applique
+à la création du compte (migration `0002`). Seuls les paiements du plan présent dans
+`CHECKOUT_URL` sont pris en compte. En dernier recours, le plan se change à la main :
+Supabase → Table Editor → `users` → colonne `plan`.
+
+Tant que la confirmation d'e-mail est désactivée dans Supabase, une adresse n'est pas
+vérifiée à l'inscription : réactive-la (avec un SMTP) avant de vendre à grande échelle.
 
 **LemonSqueezy (alternative).** Si `NEXT_PUBLIC_CHECKOUT_URL` pointe vers LemonSqueezy,
 l'activation est automatique. Dans LemonSqueezy → **Settings → Webhooks** :
@@ -85,7 +100,7 @@ bon utilisateur en `pro`. Un abonnement résilié garde l'accès jusqu'à son ex
 ## Architecture
 
 ```
-supabase/migrations/0001_init.sql   Schéma, RLS, triggers, fonctions de crédits
+supabase/migrations/                Schéma, RLS, triggers, crédits, plans en attente
 src/
 ├── middleware.ts                   Session Supabase + protection de /dashboard
 ├── app/
@@ -95,7 +110,7 @@ src/
 │   ├── dashboard/                  Vue d'ensemble, 3 outils, scripts sauvegardés
 │   └── api/
 │       ├── generate/               Appel à Claude + gestion des crédits
-│       └── webhooks/lemonsqueezy/  Passage free ↔ pro
+│       └── webhooks/               Passage free ↔ pro (whop, lemonsqueezy)
 ├── components/
 │   ├── ui/                         Bouton, champs, carte, logo
 │   ├── marketing/                  Sections de la landing, simulateur

@@ -3,10 +3,17 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 
 /**
- * Modèle utilisé par les trois outils. Claude Sonnet 5.5 par défaut ;
- * `claude-haiku-5-5` est l'option plus rapide et moins chère.
+ * Modèle utilisé par les trois outils. Claude Haiku 5.5 par défaut : rapide et
+ * environ vingt fois moins cher que Sonnet. Pour privilégier la qualité
+ * d'écriture, définir ANTHROPIC_MODEL=claude-sonnet-5-5.
  */
-export const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5-5";
+export const MODEL = process.env.ANTHROPIC_MODEL?.trim() || "claude-haiku-5-5";
+
+/**
+ * Le repli côté serveur (rejouer une requête déclinée à tort sur un autre
+ * modèle) n'existe pas pour les modèles Haiku.
+ */
+export const SUPPORTS_REFUSAL_FALLBACK = !MODEL.startsWith("claude-haiku");
 
 let client: Anthropic | undefined;
 

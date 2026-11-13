@@ -25,7 +25,8 @@ export default async function PricingPage() {
   if (!viewer) {
     free = { label: "Créer un compte gratuit", href: "/signup" };
     pro = { label: "Passer en Pro", href: CHECKOUT_URL, external: true };
-    note = "Paiement sécurisé. Utilise l'adresse e-mail de ton compte ViralForge au moment de payer.";
+    note =
+      "Paiement sécurisé. Paie avec l'adresse e-mail de ton compte ViralForge : ton plan Pro s'active tout seul.";
   } else if (isPro(viewer.plan)) {
     free = { label: "Inclus dans ton plan" };
     pro = { label: "Ton plan actuel" };
@@ -33,7 +34,7 @@ export default async function PricingPage() {
   } else {
     free = { label: "Ton plan actuel" };
     pro = { label: "Passer en Pro", href: getCheckoutUrl(viewer), external: true };
-    note = `Paiement sécurisé. Utilise l'adresse ${viewer.email} au moment de payer.`;
+    note = `Paiement sécurisé. Paie avec l'adresse ${viewer.email} : ton plan Pro s'active tout seul.`;
   }
 
   return (
