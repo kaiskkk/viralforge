@@ -129,6 +129,16 @@ export type Database = {
         Args: Record<string, never>;
         Returns: number | null;
       };
+      handle_whop_webhook: {
+        Args: {
+          p_webhook_id: string;
+          p_timestamp: string;
+          p_signatures: string;
+          p_body: string;
+          p_plan_id?: string | null;
+        };
+        Returns: Json;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

@@ -38,9 +38,10 @@ outils demandent la configuration ci-dessous.
      offre 3 crédits à l'inscription, fonctions `consume_credit` / `refund_credit` ;
    - `0002_pending_upgrades.sql` : plans Pro en attente (paiement reçu avant l'inscription) ;
    - `0003_self_serve_credits.sql` : débit des crédits sans clé secrète. Sans ce fichier ni
-     la clé secrète, les générations fonctionnent mais ne sont pas décomptées.
-3. **Project Settings → API Keys** : copie la clé secrète dans `SUPABASE_SERVICE_ROLE_KEY`.
-   Elle est indispensable au webhook de paiement ; les outils s'en passent.
+     la clé secrète, les générations fonctionnent mais ne sont pas décomptées ;
+   - `0004_whop_webhook.sql` : traitement des paiements Whop dans la base (voir Paiement).
+3. **Clé secrète (optionnelle)** : `SUPABASE_SERVICE_ROLE_KEY` permet de réserver le crédit
+   avant la génération et sert au webhook LemonSqueezy. Ni les outils ni Whop n'en ont besoin.
    L'URL du projet et la clé « publishable » sont publiques : elles ont une valeur par
    défaut dans `src/lib/supabase/config.ts`. `NEXT_PUBLIC_SUPABASE_URL` et
    `NEXT_PUBLIC_SUPABASE_ANON_KEY` ne servent qu'à viser un autre projet ; une valeur mal
@@ -80,20 +81,27 @@ Tous les boutons « Passer en Pro » du site ouvrent le lien de paiement Whop d�
 `src/lib/plans.ts` (`CHECKOUT_URL`). Pour le remplacer sans toucher au code, renseigne
 `NEXT_PUBLIC_CHECKOUT_URL`.
 
-**Activation du plan Pro.** Le webhook `src/app/api/webhooks/whop/route.ts` passe le compte
-en `pro` après paiement et le repasse en `free` à la fin de l'abonnement. Dans Whop →
-**Developer → Webhooks → Create webhook** :
+**Activation du plan Pro.** Whop prévient le site à chaque paiement (webhook). La route
+`src/app/api/webhooks/whop/route.ts` transmet la notification telle quelle à la fonction SQL
+`handle_whop_webhook` (migration `0004`), qui vérifie la signature avec le secret du webhook,
+passe le compte en `pro`, puis le repasse en `free` à la fin de l'abonnement. Aucune variable
+d'environnement n'est nécessaire.
 
-- URL : `https://ton-domaine.com/api/webhooks/whop`
-- Version de l'API : `v1`
-- Événements : `payment.succeeded`, `membership.activated`, `membership.deactivated`
-- Secret (commence par `ws_`) : à copier dans `WHOP_WEBHOOK_SECRET`
+1. Dans Whop → **Developer → Webhooks**, crée un webhook (ou via l'API, `POST /webhooks`) :
+   - URL : `https://ton-domaine.com/api/webhooks/whop`
+   - Événements : `payment.succeeded`, `membership.activated`, `membership.deactivated`
+2. Enregistre son secret (commence par `ws_`) dans la base, depuis le SQL Editor :
+
+   ```sql
+   insert into public.app_secrets (name, value) values ('whop_webhook_secret', 'ws_…')
+   on conflict (name) do update set value = excluded.value, updated_at = now();
+   ```
 
 Le compte est retrouvé par l'e-mail utilisé au paiement : le client doit payer avec l'adresse
 de son compte ViralForge. S'il paie avant de s'inscrire, son plan Pro l'attend et s'applique
-à la création du compte (migration `0002`). Seuls les paiements du plan présent dans
-`CHECKOUT_URL` sont pris en compte. En dernier recours, le plan se change à la main :
-Supabase → Table Editor → `users` → colonne `plan`.
+à la création du compte. Seuls les paiements du plan présent dans `CHECKOUT_URL` sont pris
+en compte. En dernier recours, le plan se change à la main : Supabase → Table Editor →
+`users` → colonne `plan`.
 
 Tant que la confirmation d'e-mail est désactivée dans Supabase, une adresse n'est pas
 vérifiée à l'inscription : réactive-la (avec un SMTP) avant de vendre à grande échelle.
