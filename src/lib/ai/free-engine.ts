@@ -22,6 +22,14 @@ import { finalizeOutput, GenerationError, getToolSpec } from "./tool-specs";
 const ENDPOINT = process.env.FREE_AI_URL?.trim() || "https://text.pollinations.ai/openai";
 const MODEL = "openai-fast";
 
+/**
+ * GPT-OSS réfléchit avant d'écrire, et sa réflexion compte dans la limite de
+ * sortie : sans ces réglages, la série de 7 épisodes épuisait la limite avant
+ * la moindre réponse.
+ */
+const MAX_OUTPUT_TOKENS = 16_000;
+const REASONING_EFFORT = "low";
+
 const MAX_ATTEMPTS = 3;
 /** Budget total, sous le maxDuration de la route (300 s). */
 const TOTAL_BUDGET_MS = 240_000;
@@ -110,6 +118,8 @@ export async function generateWithFreeEngine(
         body: JSON.stringify({
           model: MODEL,
           messages,
+          max_tokens: MAX_OUTPUT_TOKENS,
+          reasoning_effort: REASONING_EFFORT,
           response_format: { type: "json_object" },
           // Une graine différente à chaque essai : le service met en cache les
           // requêtes identiques, et une relance doit donner un nouveau résultat.
@@ -135,7 +145,13 @@ export async function generateWithFreeEngine(
       continue;
     }
     if (!response.ok) {
-      const detail = (await response.text().catch(() => "")).slice(0, 200);
+      const detail = (await response.text().catch(() => "")).slice(0, 300);
+      // Limite de sortie épuisée par la réflexion du modèle : un nouvel essai
+      // (nouvelle graine) aboutit en général.
+      if (detail.includes("output_token_limit_exceeded")) {
+        lastError = new GenerationError("truncated", "La réponse du générateur a été coupée.");
+        continue;
+      }
       throw new FreeEngineError("unavailable", `Le générateur a répondu ${response.status} : ${detail}`);
     }
 
