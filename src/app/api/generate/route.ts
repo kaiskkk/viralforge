@@ -114,7 +114,7 @@ function toErrorResponse(error: unknown, creditNote: string, credits: number | n
       503,
       "busy",
       error.code === "busy"
-        ? `Le générateur gratuit est très demandé en ce moment. Réessaie dans une minute.${creditNote}`
+        ? `Le générateur gratuit est très demandé en ce moment. Réessaie ${retryDelay(error.retryAfterSeconds)}.${creditNote}`
         : `Le générateur gratuit est momentanément indisponible. Réessaie dans quelques minutes.${creditNote}`,
       credits,
     );
@@ -147,6 +147,14 @@ function toErrorResponse(error: unknown, creditNote: string, credits: number | n
   }
 
   return fail(502, "generation_failed", `La génération a échoué. Réessaie.${creditNote}`, credits);
+}
+
+/** « dans 40 secondes », « dans 2 minutes » ; « dans une minute » si le délai est inconnu. */
+function retryDelay(seconds: number | undefined): string {
+  if (!seconds || seconds <= 0) return "dans une minute";
+  if (seconds < 60) return `dans ${Math.max(10, Math.ceil(seconds / 5) * 5)} secondes`;
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? "dans une minute" : `dans ${minutes} minutes`;
 }
 
 function describeAnthropicConfigError(error: unknown): string | null {

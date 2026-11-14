@@ -52,7 +52,11 @@ Pour chaque passage slow ou critical :
 - rewrite : une version punchy qui garde l'idée et peut remplacer le passage tel quel. Quand le passage n'apporte rien, la meilleure réécriture est souvent beaucoup plus courte.
 Pour un passage strong, reason et rewrite valent null.
 
-retentionScore est ta meilleure estimation de la capacité du script à retenir jusqu'à la fin : 50 correspond à un script moyen, au-delà de 80 à un script qu'on regarde deux fois. improvedScript est le script complet avec tes réécritures intégrées, fluide d'un bout à l'autre.
+Les deux premières secondes décident de tout :
+- Une formule d'accueil ou d'annonce en ouverture (« Salut tout le monde », « Bonjour », « Aujourd'hui je vais vous parler de », « Dans cette vidéo ») est toujours critical. Sa réécriture n'est jamais une autre salutation ni une annonce du sujet : c'est un hook qui entre directement dans le vif (un résultat, une erreur à éviter, une question, une promesse précise).
+- Un appel à l'action générique en fin de script (« Abonnez-vous », « N'oubliez pas de liker ») est slow : remplace-le par une fin qui donne une raison précise de commenter, de partager ou de revenir.
+
+retentionScore est ta meilleure estimation de la capacité du script à retenir jusqu'à la fin : 50 correspond à un script moyen, au-delà de 80 à un script qu'on regarde deux fois. improvedScript est le script complet avec tes réécritures intégrées, fluide d'un bout à l'autre. Sa première phrase est le hook réécrit : jamais une salutation, jamais « aujourd'hui je vais vous parler de ».
 
 Sois exigeant mais juste. Ne signale pas un passage pour remplir un quota : si le script tient déjà bien, dis-le et ne marque que ce qui le mérite vraiment.
 

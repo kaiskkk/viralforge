@@ -6,6 +6,7 @@
 import type { z } from "zod";
 
 import type { CreatorProfile } from "@/lib/profile";
+import { startsWithSlowOpener, stripLeadingGreetings } from "@/lib/viral-score";
 
 import {
   antiDropoffOutputSchema,
@@ -82,7 +83,26 @@ export function finalizeOutput<Tool extends GenerateRequest["tool"]>(
 ): ToolOutputs[Tool] {
   if (tool === "antidropoff") {
     const result = output as ToolOutputs["antidropoff"];
-    return { ...result, retentionScore: clampScore(result.retentionScore) } as ToolOutputs[Tool];
+    // Filet de sécurité : une ouverture « Salut… » ou « Aujourd'hui je vais… » est
+    // toujours un décrochage, et sa réécriture ne doit pas être une autre salutation.
+    const segments = result.segments.map((segment, index) => {
+      if (index > 0 || !startsWithSlowOpener(segment.text)) return segment;
+      const weakRewrite = !segment.rewrite || startsWithSlowOpener(segment.rewrite);
+      return {
+        ...segment,
+        status: "critical" as const,
+        reason: weakRewrite
+          ? "Formule d'accueil : la première seconde est perdue. Supprime-la et ouvre directement sur ta phrase la plus forte."
+          : (segment.reason ?? "Formule d'accueil : la première seconde est perdue avant même le sujet."),
+        rewrite: weakRewrite ? null : segment.rewrite,
+      };
+    });
+    return {
+      ...result,
+      segments,
+      improvedScript: stripLeadingGreetings(result.improvedScript),
+      retentionScore: clampScore(result.retentionScore),
+    } as ToolOutputs[Tool];
   }
 
   if (tool === "series") {

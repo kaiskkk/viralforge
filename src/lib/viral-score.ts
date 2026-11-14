@@ -329,6 +329,33 @@ function verdictFor(total: number): string {
   return "À retravailler";
 }
 
+/** Vrai si le texte s'ouvre sur une formule d'accueil ou d'annonce (« Salut », « Aujourd'hui je… »). */
+export function startsWithSlowOpener(text: string): boolean {
+  const normalized = normalize(text.trim());
+  return SLOW_OPENERS.some((opener) => normalized.startsWith(opener));
+}
+
+const GREETINGS = ["bonjour", "salut", "coucou", "hello", "bienvenue", "hi", "hey", "welcome"];
+
+/**
+ * Retire les phrases de salutation pure en tête d'un script (« Salut à tous ! »),
+ * sans toucher au reste. Une phrase longue, qui porte sans doute le sujet, est gardée.
+ */
+export function stripLeadingGreetings(text: string): string {
+  let rest = text.trimStart();
+  for (let removed = 0; removed < 2; removed++) {
+    const match = rest.match(/^[^.!?…\n]*[.!?…]+\s*/);
+    if (!match) break;
+    const sentence = match[0];
+    const words = splitWords(normalize(sentence));
+    const isGreeting = GREETINGS.includes(words[0] ?? "") && words.length <= 10;
+    const remaining = rest.slice(sentence.length);
+    if (!isGreeting || !/[\p{L}\p{N}]/u.test(remaining)) break;
+    rest = remaining.trimStart();
+  }
+  return rest;
+}
+
 /** Débit moyen face caméra : environ 150 mots par minute. */
 const WORDS_PER_MINUTE = 150;
 

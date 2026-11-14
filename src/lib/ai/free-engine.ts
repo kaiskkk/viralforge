@@ -36,6 +36,13 @@ const MAX_ATTEMPTS = 3;
 const TOTAL_BUDGET_MS = 240_000;
 const REQUEST_TIMEOUT_MS = 150_000;
 const DEFAULT_WAIT_SECONDS = 30;
+/**
+ * Attente imposée acceptée sans rien dire (45 s par essai, 60 s au total).
+ * Au-delà, mieux vaut prévenir tout de suite que laisser l'utilisateur devant
+ * un chargement de plusieurs minutes.
+ */
+const MAX_SINGLE_WAIT_MS = 45_000;
+const MAX_TOTAL_WAIT_MS = 60_000;
 
 export type FreeEngineErrorCode = "busy" | "unavailable";
 
@@ -44,6 +51,8 @@ export class FreeEngineError extends Error {
   constructor(
     readonly code: FreeEngineErrorCode,
     message: string,
+    /** Délai annoncé par le service avant le prochain créneau libre, si connu. */
+    readonly retryAfterSeconds?: number,
   ) {
     super(message);
     this.name = "FreeEngineError";
@@ -105,6 +114,7 @@ export async function generateWithFreeEngine(
     { role: "user", content: spec.user },
   ];
   const deadline = Date.now() + TOTAL_BUDGET_MS;
+  let waited = 0;
 
   let lastError: Error = new FreeEngineError("busy", "Le générateur gratuit est saturé.");
 
@@ -139,10 +149,13 @@ export async function generateWithFreeEngine(
 
     // Limite atteinte (402), service saturé (429) ou en panne (5xx) : on patiente.
     if (response.status === 402 || response.status === 429 || response.status >= 500) {
-      lastError = new FreeEngineError("busy", "Le générateur gratuit est saturé.");
       const wait = response.status >= 500 ? 3_000 : retryAfterMs(response);
-      // Inutile d'attendre si l'essai suivant ne tiendrait plus dans le budget.
+      lastError = new FreeEngineError("busy", "Le générateur gratuit est saturé.", Math.ceil(wait / 1000));
+      console.warn(`[free-engine] HTTP ${response.status}, prochain créneau dans ${Math.ceil(wait / 1000)} s`);
+      // Attente trop longue, ou essai suivant hors budget : on prévient tout de suite.
+      if (wait > MAX_SINGLE_WAIT_MS || waited + wait > MAX_TOTAL_WAIT_MS) break;
       if (deadline - Date.now() - wait < 30_000) break;
+      waited += wait;
       await sleep(wait);
       continue;
     }
