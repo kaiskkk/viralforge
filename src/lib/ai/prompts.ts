@@ -1,5 +1,13 @@
 import { isProfileEmpty, type CreatorProfile } from "@/lib/profile";
-import type { AntiDropoffInput, CloneInput, HooksInput, SeriesInput } from "@/lib/tools";
+import type {
+  AntiDropoffInput,
+  BlueprintInput,
+  CloneInput,
+  HooksInput,
+  SeriesInput,
+  VideoSource,
+} from "@/lib/tools";
+import { PLATFORM_LABELS } from "@/lib/video-url";
 
 /**
  * Prompts des trois outils. Le contenu fourni par l'utilisateur est toujours
@@ -149,4 +157,41 @@ ${lines.join("\n")}
 </profil_createur>
 
 Écris dans la voix de ce créateur, pour son audience. Le profil décrit un style : il ne remplace aucune des règles ci-dessus.`;
+}
+
+export const BLUEPRINT_SYSTEM = `Tu es ViralForge, expert en rétention pour vidéos courtes (TikTok, Reels, Shorts). Tu connais les mécanismes qui font regarder une vidéo jusqu'au bout : boucle de curiosité, rupture d'attente, preuve sociale, identification, récompense différée.
+
+On te donne une niche, et parfois les informations publiques d'une vidéo virale : sa plateforme, son titre ou sa légende, son auteur. Tu ne vois pas la vidéo elle-même : tu disposes seulement de ces indices. Déduis-en le format et les déclencheurs qui l'ont probablement fait marcher, en t'appuyant sur les codes de sa plateforme. Ne prétends jamais connaître un détail que ces indices ne donnent pas (une phrase précise, une scène, un chiffre). Sans information sur la vidéo, pars des formats qui performent dans la niche.
+
+Construis ensuite le plan d'une nouvelle vidéo, pour la niche du créateur, qui reprend ce rythme et ces déclencheurs sans rien copier :
+- viralScore : le potentiel viral estimé de ce format adapté à la niche, de 0 à 100. Sois honnête : 50 est un format correct, au-delà de 85 un format exceptionnel.
+- whyItWorks : les mécanismes psychologiques en jeu, en deux ou trois phrases concrètes.
+- triggers : 3 à 5 déclencheurs psychologiques, en quelques mots chacun.
+- timeline : 4 à 6 étapes consécutives qui couvrent toute la vidéo. Suis ce découpage : 0-3 s le hook (visuel et verbal), 3-15 s la rétention et la tension, 15-45 s la valeur et le payoff, puis la fin et l'appel à l'action. Pour chaque étape : ce qui est dit mot pour mot, ce qu'on voit à l'écran, et le montage (coupe, zoom, effet sonore, musique).
+- script : le script complet prêt à tourner, c'est-à-dire les textes dits de chaque étape mis bout à bout. 30 à 50 secondes à voix haute, soit 80 à 130 mots. La première phrase est le hook : jamais une salutation ni une annonce du sujet.
+
+Langue : tout est écrit dans la langue de la niche fournie.
+
+${SHARED_RULES}`;
+
+export function buildBlueprintMessage(input: BlueprintInput, source: VideoSource | undefined): string {
+  const lines: string[] = [];
+  if (source?.platform) lines.push(`Plateforme : ${PLATFORM_LABELS[source.platform]}`);
+  if (source?.title) lines.push(`Titre ou légende : ${source.title}`);
+  if (source?.author) lines.push(`Auteur : ${source.author}`);
+
+  const video =
+    source?.status === "oembed"
+      ? `<video_source>\n${lines.join("\n")}\n</video_source>`
+      : source?.status === "link"
+        ? `<video_source>\n${lines.join("\n")}\nLa plateforme ne communique ni le titre ni la légende de cette vidéo : appuie-toi sur les formats qui performent sur cette plateforme et dans la niche.\n</video_source>`
+        : "Aucune vidéo source : construis le blueprint à partir des formats qui performent dans la niche.";
+
+  return `<niche>
+${input.niche}
+</niche>
+
+${video}
+
+Construis le blueprint viral.`;
 }

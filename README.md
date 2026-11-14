@@ -6,6 +6,13 @@ SaaS d'écriture de scripts pour vidéos courtes (TikTok, Reels, Shorts).
 - **Dashboard** avec quatre outils d'écriture, gratuits et sans clé par défaut : Cloneur de
   Structure Virale, Anti-Dropoff, Générateur de Série 7 jours et Labo à hooks (10 accroches
   classées par le moteur du simulateur).
+- **Video-to-Viral Blueprint** (en tête du dashboard, `POST /api/clone-video`) : lien TikTok,
+  Reels ou Shorts + niche → potentiel viral estimé, déclencheurs psychologiques, découpage
+  seconde par seconde (dit, écran, montage) et script prêt à tourner. Le site lit les
+  informations publiques de la vidéo via oEmbed (titre ou légende, auteur, miniature) :
+  YouTube et TikTok ; Instagram exige un jeton Meta et n'est pas lu. Il ne voit pas la vidéo
+  elle-même. Sans information lisible, le plan part de la niche ; l'interface indique
+  toujours d'où vient l'analyse.
 - **Profil créateur** (niche, audience, ton, plateforme, style) injecté dans les prompts de
   tous les outils.
 - **Studio** : téléprompteur plein écran par-dessus la caméra, avec enregistrement vidéo dans
@@ -48,7 +55,8 @@ outils demandent la configuration ci-dessous.
    - `0003_self_serve_credits.sql` : débit des crédits sans clé secrète. Sans ce fichier ni
      la clé secrète, les générations fonctionnent mais ne sont pas décomptées ;
    - `0004_whop_webhook.sql` : traitement des paiements Whop dans la base (voir Paiement) ;
-   - `0005_hooks_and_profiles.sql` : sauvegarde des accroches et profils créateurs.
+   - `0005_hooks_and_profiles.sql` : sauvegarde des accroches et profils créateurs ;
+   - `0006_blueprint.sql` : sauvegarde des blueprints.
 3. **Clé secrète (optionnelle)** : `SUPABASE_SERVICE_ROLE_KEY` permet de réserver le crédit
    avant la génération et sert au webhook LemonSqueezy. Ni les outils ni Whop n'en ont besoin.
    L'URL du projet et la clé « publishable » sont publiques : elles ont une valeur par
@@ -138,7 +146,8 @@ src/
 │   ├── auth/                       Callback e-mail, déconnexion
 │   ├── dashboard/                  Vue d'ensemble, 3 outils, scripts sauvegardés
 │   └── api/
-│       ├── generate/               Vérification des crédits, génération Claude, décompte
+│       ├── generate/               Génération des outils (cœur : lib/generation-handler.ts)
+│       ├── clone-video/            Video-to-Viral Blueprint
 │       └── webhooks/               Passage free ↔ pro (whop, lemonsqueezy)
 ├── components/
 │   ├── ui/                         Bouton, champs, carte, logo

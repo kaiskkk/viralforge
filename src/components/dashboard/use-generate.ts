@@ -18,8 +18,13 @@ type ApiResponse<Result> = {
   error?: { code: string; message: string };
 };
 
-/** Appelle POST /api/generate pour un outil et suit l'état de la requête. */
-export function useGenerate<Tool extends ToolId>(tool: Tool) {
+/**
+ * Lance un outil et suit l'état de la requête. Par défaut POST /api/generate
+ * avec { tool, input } ; une route dédiée (ex. /api/clone-video) reçoit
+ * directement l'entrée.
+ */
+export function useGenerate<Tool extends ToolId>(tool: Tool, options: { endpoint?: string } = {}) {
+  const endpoint = options.endpoint ?? "/api/generate";
   const [state, setState] = useState<GenerateState<ToolOutputs[Tool]>>({ status: "idle" });
   const { setCredits } = useCredits();
   const router = useRouter();
@@ -32,10 +37,10 @@ export function useGenerate<Tool extends ToolId>(tool: Tool) {
       let response: Response;
       let payload: ApiResponse<ToolOutputs[Tool]> | null;
       try {
-        response = await fetch("/api/generate", {
+        response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tool, input }),
+          body: JSON.stringify(endpoint === "/api/generate" ? { tool, input } : input),
         });
         payload = await response.json().catch(() => null);
       } catch {
@@ -66,7 +71,7 @@ export function useGenerate<Tool extends ToolId>(tool: Tool) {
 
       setState({ status: "success", result: payload.result });
     },
-    [tool, setCredits, router, pathname],
+    [tool, endpoint, setCredits, router, pathname],
   );
 
   return { state, generate };

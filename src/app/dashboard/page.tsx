@@ -2,6 +2,7 @@ import { ArrowUpRight, Bookmark, Clapperboard, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import { CheckoutLink } from "@/components/checkout-link";
+import { BlueprintModule } from "@/components/dashboard/blueprint-module";
 import { InstallCard } from "@/components/dashboard/install-card";
 import { SavedScriptRow } from "@/components/dashboard/saved-script-row";
 import { ToolIcon } from "@/components/tool-icon";
@@ -10,7 +11,7 @@ import { requireViewer } from "@/lib/auth";
 import { FREE_CREDITS, isPro } from "@/lib/plans";
 import { isProfileEmpty, profileSummary } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
-import { TOOL_IDS, TOOLS } from "@/lib/tools";
+import { TOOLS, WRITING_TOOL_IDS } from "@/lib/tools";
 
 export default async function DashboardPage() {
   const viewer = await requireViewer();
@@ -41,10 +42,12 @@ export default async function DashboardPage() {
         </p>
       </header>
 
+      <BlueprintModule />
+
       <InstallCard />
 
       <section aria-label="Outils" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        {TOOL_IDS.map((id) => {
+        {WRITING_TOOL_IDS.map((id) => {
           const tool = TOOLS[id];
           return (
             <Link

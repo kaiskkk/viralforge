@@ -62,10 +62,12 @@ export function GenerateButton({
   loading,
   disabled,
   children,
+  className,
 }: {
   loading: boolean;
   disabled?: boolean;
   children: React.ReactNode;
+  className?: string;
 }) {
   const { plan, credits } = useCredits();
   const outOfCredits = plan === "free" && credits <= 0;
@@ -80,7 +82,7 @@ export function GenerateButton({
   }
 
   return (
-    <Button type="submit" disabled={loading || disabled} className="h-11 w-full">
+    <Button type="submit" disabled={loading || disabled} className={className ?? "h-11 w-full"}>
       {loading ? (
         <LoaderCircle className="size-4 animate-spin" aria-hidden />
       ) : (
@@ -159,12 +161,18 @@ export function ResultPanel<Result>({
   state,
   emptyHint,
   loadingSteps,
+  loading,
+  hideIdle = false,
   children,
 }: {
   tool: ToolId;
   state: GenerateState<Result>;
   emptyHint: string;
   loadingSteps: string[];
+  /** Remplace l'écran de chargement standard. */
+  loading?: React.ReactNode;
+  /** Rien à afficher avant la première génération. */
+  hideIdle?: boolean;
   children: (result: Result) => React.ReactNode;
 }) {
   const anchor = useRef<HTMLDivElement>(null);
@@ -184,8 +192,8 @@ export function ResultPanel<Result>({
 
   return (
     <div ref={anchor} className="scroll-mt-20">
-      {state.status === "idle" && <EmptyPanel tool={tool} hint={emptyHint} />}
-      {state.status === "loading" && <LoadingPanel steps={loadingSteps} />}
+      {state.status === "idle" && !hideIdle && <EmptyPanel tool={tool} hint={emptyHint} />}
+      {state.status === "loading" && (loading ?? <LoadingPanel steps={loadingSteps} />)}
       {state.status === "error" && <ErrorPanel code={state.code} message={state.message} />}
       {state.status === "success" && <div className="animate-fade-up">{children(state.result)}</div>}
     </div>

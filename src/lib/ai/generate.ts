@@ -4,7 +4,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { z } from "zod";
 
 import type { CreatorProfile } from "@/lib/profile";
-import type { GenerateRequest, ToolOutputs } from "@/lib/tools";
+import type { GenerateRequest, GenerationContext, ToolModelOutputs, ToolOutputs } from "@/lib/tools";
 
 import { getAiEngine, getAnthropic, MODEL, SUPPORTS_REFUSAL_FALLBACK } from "./client";
 import { generateWithFreeEngine } from "./free-engine";
@@ -58,8 +58,9 @@ async function generateStructured<Schema extends z.ZodType>(options: {
 export async function runTool(
   request: GenerateRequest,
   profile?: CreatorProfile | null,
+  context: GenerationContext = {},
 ): Promise<ToolOutputs[GenerateRequest["tool"]]> {
-  if (getAiEngine() === "free") return generateWithFreeEngine(request, profile);
-  const output = await generateStructured(getToolSpec(request, profile));
-  return finalizeOutput(request.tool, output as ToolOutputs[typeof request.tool]);
+  if (getAiEngine() === "free") return generateWithFreeEngine(request, profile, context);
+  const output = await generateStructured(getToolSpec(request, profile, context));
+  return finalizeOutput(request.tool, output as ToolModelOutputs[typeof request.tool], context);
 }

@@ -12,7 +12,7 @@ export type Json =
   | Json[];
 
 export type Plan = "free" | "pro";
-export type ToolKey = "clone" | "antidropoff" | "series" | "hooks";
+export type ToolKey = "clone" | "antidropoff" | "series" | "hooks" | "blueprint";
 
 export type Database = {
   public: {

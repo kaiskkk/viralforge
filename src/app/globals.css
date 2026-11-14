@@ -81,3 +81,13 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Barre de balayage du chargement du Blueprint */
+@keyframes blueprint-scan {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}

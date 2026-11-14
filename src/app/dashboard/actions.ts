@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 import {
   antiDropoffInputSchema,
   antiDropoffOutputSchema,
+  blueprintInputSchema,
+  blueprintOutputSchema,
   cloneInputSchema,
   cloneOutputSchema,
   hooksInputSchema,
@@ -31,6 +33,12 @@ const saveSchema = z.discriminatedUnion("tool", [
   }),
   z.object({ tool: z.literal("series"), title, input: seriesInputSchema, output: seriesOutputSchema }),
   z.object({ tool: z.literal("hooks"), title, input: hooksInputSchema, output: hooksOutputSchema }),
+  z.object({
+    tool: z.literal("blueprint"),
+    title,
+    input: blueprintInputSchema,
+    output: blueprintOutputSchema,
+  }),
 ]);
 
 export type SaveScriptPayload = z.input<typeof saveSchema>;

@@ -10,10 +10,12 @@ export function CopyButton({
   label = "Copier",
   className,
   compact = false,
+  variant = "secondary",
 }: {
   text: string;
   label?: string;
   className?: string;
+  variant?: "primary" | "secondary";
   /** Icône seule (le libellé reste lu par les lecteurs d'écran). */
   compact?: boolean;
 }) {
@@ -39,13 +41,13 @@ export function CopyButton({
       type="button"
       onClick={copy}
       className={buttonClasses({
-        variant: "secondary",
+        variant,
         size: "sm",
         className: compact ? `size-8 shrink-0 px-0 ${className ?? ""}` : className,
       })}
     >
       {copied ? (
-        <Check className="size-3.5 text-accent" aria-hidden />
+        <Check className={variant === "primary" ? "size-3.5" : "size-3.5 text-accent"} aria-hidden />
       ) : (
         <Copy className="size-3.5" aria-hidden />
       )}

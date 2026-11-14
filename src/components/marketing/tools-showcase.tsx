@@ -1,7 +1,7 @@
 import { ArrowRight, Camera, Clapperboard, Download, Gauge } from "lucide-react";
 
 import { ToolIcon } from "@/components/tool-icon";
-import { TOOLS, type ToolId } from "@/lib/tools";
+import { TOOLS, WRITING_TOOL_IDS, type WritingToolId } from "@/lib/tools";
 import { cn } from "@/lib/utils";
 
 /** Aperçu du Cloneur : chaque battement du script source retrouve son équivalent. */
@@ -117,14 +117,14 @@ function HooksPreview() {
   );
 }
 
-const PREVIEWS: Record<ToolId, () => JSX.Element> = {
+const PREVIEWS: Record<WritingToolId, () => JSX.Element> = {
   clone: ClonePreview,
   antidropoff: AntiDropoffPreview,
   series: SeriesPreview,
   hooks: HooksPreview,
 };
 
-const DETAILS: Record<ToolId, string> = {
+const DETAILS: Record<WritingToolId, string> = {
   clone:
     "Colle un script qui a explosé. ViralForge en isole la structure psychologique — hook, tension, preuve, payoff — et la rejoue sur ton sujet, sans reprendre un seul mot.",
   antidropoff:
@@ -148,8 +148,10 @@ export function ToolsShowcase() {
           deux premières secondes, la structure, le milieu qui s&apos;essouffle, le lendemain.
         </p>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-2">
-          {(Object.keys(TOOLS) as ToolId[]).map((id) => {
+        <BlueprintFeature />
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {WRITING_TOOL_IDS.map((id) => {
             const tool = TOOLS[id];
             const Preview = PREVIEWS[id];
             return (
@@ -175,6 +177,49 @@ export function ToolsShowcase() {
         <StudioFeature />
       </div>
     </section>
+  );
+}
+
+/** Le Blueprint : d'un lien de vidéo virale au plan de ta propre vidéo. */
+function BlueprintFeature() {
+  const steps = [
+    { time: "0-3 s", phase: "Hook", color: "bg-accent" },
+    { time: "3-15 s", phase: "Tension", color: "bg-warn" },
+    { time: "15-45 s", phase: "Payoff", color: "bg-sky-400" },
+    { time: "Fin", phase: "Appel à l'action", color: "bg-fuchsia-400" },
+  ];
+  return (
+    <article className="relative mt-12 overflow-hidden rounded-2xl border border-accent/30 bg-surface p-6 shadow-[0_0_80px_-30px_rgb(var(--accent)/0.6)] sm:p-8">
+      <div className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-accent/10 blur-3xl" aria-hidden />
+      <div className="relative grid items-center gap-8 md:grid-cols-[1.1fr_1fr]">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-black">Nouveau</span>
+            <span className="rounded-full border border-accent/40 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-accent">IA avancée</span>
+          </div>
+          <div className="mt-4 flex items-center gap-2.5">
+            <span className="grid size-8 place-items-center rounded-lg bg-accent/15 text-accent">
+              <ToolIcon tool="blueprint" className="size-4" />
+            </span>
+            <h3 className="text-base font-semibold tracking-tight">{TOOLS.blueprint.name}</h3>
+          </div>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-muted">
+            Colle le lien d&apos;une vidéo qui a explosé et ta niche. Tu reçois son potentiel viral,
+            les déclencheurs qui la font marcher, son plan seconde par seconde et ton script prêt
+            à tourner, avec les conseils de montage.
+          </p>
+        </div>
+        <ol className="space-y-2.5" aria-hidden>
+          {steps.map((step) => (
+            <li key={step.time} className="hairline flex items-center gap-3 rounded-xl bg-bg/60 px-3.5 py-2.5">
+              <span className={cn("size-2 rounded-full", step.color)} />
+              <span className="w-14 font-mono text-[11px] text-faint">{step.time}</span>
+              <span className="text-[13px] font-medium">{step.phase}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </article>
   );
 }
 

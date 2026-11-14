@@ -10,19 +10,26 @@ import { startsWithSlowOpener, stripLeadingGreetings } from "@/lib/viral-score";
 
 import {
   antiDropoffOutputSchema,
+  BLUEPRINT_MIN_STEPS,
+  blueprintModelSchema,
   cloneOutputSchema,
   HOOKS_COUNT,
   HOOKS_MIN,
   hooksOutputSchema,
   SERIES_LENGTH,
+  NO_VIDEO_SOURCE,
   seriesOutputSchema,
   type GenerateRequest,
+  type GenerationContext,
+  type ToolModelOutputs,
   type ToolOutputs,
 } from "@/lib/tools";
 
 import {
   ANTI_DROPOFF_SYSTEM,
+  BLUEPRINT_SYSTEM,
   buildAntiDropoffMessage,
+  buildBlueprintMessage,
   buildCloneMessage,
   buildHooksMessage,
   buildProfileBlock,
@@ -49,12 +56,16 @@ export type ToolSpec = {
   schema: z.ZodType;
 };
 
-export function getToolSpec(request: GenerateRequest, profile?: CreatorProfile | null): ToolSpec {
-  const spec = baseToolSpec(request);
+export function getToolSpec(
+  request: GenerateRequest,
+  profile?: CreatorProfile | null,
+  context: GenerationContext = {},
+): ToolSpec {
+  const spec = baseToolSpec(request, context);
   return { ...spec, user: spec.user + buildProfileBlock(profile) };
 }
 
-function baseToolSpec(request: GenerateRequest): ToolSpec {
+function baseToolSpec(request: GenerateRequest, context: GenerationContext): ToolSpec {
   switch (request.tool) {
     case "clone":
       return { system: CLONE_SYSTEM, user: buildCloneMessage(request.input), schema: cloneOutputSchema };
@@ -68,18 +79,25 @@ function baseToolSpec(request: GenerateRequest): ToolSpec {
       return { system: SERIES_SYSTEM, user: buildSeriesMessage(request.input), schema: seriesOutputSchema };
     case "hooks":
       return { system: HOOKS_SYSTEM, user: buildHooksMessage(request.input), schema: hooksOutputSchema };
+    case "blueprint":
+      return {
+        system: BLUEPRINT_SYSTEM,
+        user: buildBlueprintMessage(request.input, context.video),
+        schema: blueprintModelSchema,
+      };
   }
 }
 
 const clampScore = (value: number) => Math.min(100, Math.max(0, Math.round(value)));
 
 /**
- * Dernières vérifications sur une réponse déjà conforme au schéma : score
- * borné, série de 7 épisodes numérotés dans l'ordre.
+ * Dernières vérifications sur une réponse déjà conforme au schéma : scores
+ * bornés, série de 7 épisodes numérotés, source du Blueprint ajoutée.
  */
 export function finalizeOutput<Tool extends GenerateRequest["tool"]>(
   tool: Tool,
-  output: ToolOutputs[Tool],
+  output: ToolModelOutputs[Tool],
+  context: GenerationContext = {},
 ): ToolOutputs[Tool] {
   if (tool === "antidropoff") {
     const result = output as ToolOutputs["antidropoff"];
@@ -136,5 +154,21 @@ export function finalizeOutput<Tool extends GenerateRequest["tool"]>(
     return { hooks: hooks.slice(0, HOOKS_COUNT) } as ToolOutputs[Tool];
   }
 
-  return output;
+  if (tool === "blueprint") {
+    const result = output as ToolModelOutputs["blueprint"];
+    const timeline = result.timeline.filter((step) => step.spoken.trim() || step.visual.trim());
+    if (timeline.length < BLUEPRINT_MIN_STEPS || !result.script.trim()) {
+      throw new GenerationError("invalid_output", `Blueprint incomplet (${timeline.length} étapes).`);
+    }
+    return {
+      ...result,
+      viralScore: clampScore(result.viralScore),
+      triggers: result.triggers.map((trigger) => trigger.trim()).filter(Boolean).slice(0, 5),
+      timeline,
+      script: stripLeadingGreetings(result.script),
+      source: context.video ?? NO_VIDEO_SOURCE,
+    } as ToolOutputs[Tool];
+  }
+
+  return output as ToolOutputs[Tool];
 }

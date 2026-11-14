@@ -1,4 +1,4 @@
-import { CalendarDays, Dna, Magnet, ScanLine, type LucideProps } from "lucide-react";
+import { CalendarDays, Dna, Magnet, ScanLine, WandSparkles, type LucideProps } from "lucide-react";
 
 import type { ToolId } from "@/lib/tools";
 
@@ -7,6 +7,7 @@ const ICONS = {
   antidropoff: ScanLine,
   series: CalendarDays,
   hooks: Magnet,
+  blueprint: WandSparkles,
 } satisfies Record<ToolId, unknown>;
 
 export function ToolIcon({ tool, ...props }: { tool: ToolId } & LucideProps) {

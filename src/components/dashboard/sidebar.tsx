@@ -21,7 +21,7 @@ import { ToolIcon } from "@/components/tool-icon";
 import { buttonClasses } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { FREE_CREDITS } from "@/lib/plans";
-import { TOOL_IDS, TOOLS } from "@/lib/tools";
+import { TOOLS, WRITING_TOOL_IDS } from "@/lib/tools";
 import { cn } from "@/lib/utils";
 
 type NavItem = { href: string; label: string; icon: React.ReactNode };
@@ -31,7 +31,10 @@ const OVERVIEW: NavItem = {
   label: "Vue d'ensemble",
   icon: <LayoutDashboard className="size-4" aria-hidden />,
 };
-const TOOL_ITEMS: NavItem[] = TOOL_IDS.map((id) => ({
+/** Le Blueprint en tête : c'est l'outil phare, sur la page d'accueil du dashboard. */
+const MENU_TOOL_IDS = ["blueprint", ...WRITING_TOOL_IDS] as const;
+
+const TOOL_ITEMS: NavItem[] = MENU_TOOL_IDS.map((id) => ({
   href: TOOLS[id].href,
   label: TOOLS[id].shortName,
   icon: <ToolIcon tool={id} className="size-4" />,
@@ -147,7 +150,7 @@ function ToolsSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <ul className="space-y-1.5">
-          {TOOL_IDS.map((id) => (
+          {MENU_TOOL_IDS.map((id) => (
             <li key={id}>
               <Link
                 href={TOOLS[id].href}
