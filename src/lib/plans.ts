@@ -6,6 +6,13 @@ export const FREE_CREDITS = 3;
 /** Prix du plan Whop (plan_CPkJSKD2HKOZP : 19,99 € par mois, taxes en sus). */
 export const PRO_PRICE = process.env.NEXT_PUBLIC_PRO_PRICE || "19,99 €";
 
+/** Le prix ramené à la journée (« 0,67 € »), ou null s'il n'est pas lisible. */
+export const PRO_PRICE_PER_DAY: string | null = (() => {
+  const amount = Number.parseFloat(PRO_PRICE.replace(/[^\d,.]/g, "").replace(",", "."));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(amount / 30);
+})();
+
 /**
  * Lien de paiement du plan Pro (page de paiement Whop). Tous les boutons
  * « Passer en Pro » du site y mènent.

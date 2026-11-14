@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { CreditsProvider } from "@/components/dashboard/credits-context";
 import { Sidebar } from "@/components/dashboard/sidebar";
+import { UpgradeDialog } from "@/components/dashboard/upgrade-dialog";
 import { requireViewer } from "@/lib/auth";
 
 export const metadata: Metadata = {
@@ -16,12 +17,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const viewer = await requireViewer();
 
   return (
-    <CreditsProvider plan={viewer.plan} initialCredits={viewer.credits} initialProfile={viewer.profile}>
+    <CreditsProvider plan={viewer.plan} email={viewer.email} initialCredits={viewer.credits} initialProfile={viewer.profile}>
       <Sidebar email={viewer.email} />
       {/* Sur téléphone, de la marge sous le contenu pour la barre d'onglets du bas. */}
       <main className="pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0 lg:pl-64">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-8 sm:py-10">{children}</div>
       </main>
+      <UpgradeDialog />
     </CreditsProvider>
   );
 }

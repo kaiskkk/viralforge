@@ -1,6 +1,7 @@
 import { ArrowRight, ClipboardPaste, ScanSearch, Send } from "lucide-react";
 import Link from "next/link";
 
+import { BeyondChatbot } from "@/components/marketing/beyond-chatbot";
 import { Faq } from "@/components/marketing/faq";
 import { PricingCards } from "@/components/marketing/pricing-cards";
 import { ToolsShowcase } from "@/components/marketing/tools-showcase";
@@ -87,6 +88,8 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <BeyondChatbot />
+
       <ToolsShowcase />
 
       {/* Fonctionnement */}
@@ -120,8 +123,8 @@ export default function LandingPage() {
               <span className="text-gradient">Commence gratuitement.</span>
             </h2>
             <p className="mt-4 text-[15px] leading-relaxed text-muted">
-              {FREE_CREDITS} générations offertes pour juger sur pièces. Passe en Pro quand tu
-              publies tous les jours.
+              {FREE_CREDITS} scripts IA offerts pour juger sur pièces, et les outils de mesure gratuits
+              pour toujours. Passe en Pro quand tu publies souvent.
             </p>
           </div>
           <div className="mt-12">

@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { ShootButton } from "@/components/dashboard/shoot-button";
+import { BeforeAfterRetention } from "@/components/retention-report";
 import { Card, CardHeader } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import type { AntiDropoffOutput, SegmentStatus } from "@/lib/tools";
+import { analyzeRetention } from "@/lib/retention";
 import { cn } from "@/lib/utils";
 import { formatDuration, speakingSeconds } from "@/lib/viral-score";
 
@@ -44,6 +46,11 @@ export function AntiDropoffResult({
   const criticalCount = issues.length - slowCount;
 
   const [active, setActive] = useState<number | null>(issues[0]?.index ?? null);
+  const curves = useMemo(() => {
+    const before = analyzeRetention(output.segments.map((segment) => segment.text).join(" "));
+    const after = analyzeRetention(output.improvedScript);
+    return before && after ? { before, after } : null;
+  }, [output]);
   const cards = useRef(new Map<number, HTMLLIElement>());
 
   function focusIssue(index: number) {
@@ -81,6 +88,16 @@ export function AntiDropoffResult({
           </p>
         </div>
       </Card>
+
+      {/* Courbe avant / après */}
+      {curves && (
+        <Card>
+          <CardHeader eyebrow="Courbe de rétention estimée" title="Avant et après la réécriture" />
+          <div className="px-3 py-4 sm:px-5">
+            <BeforeAfterRetention before={curves.before} after={curves.after} />
+          </div>
+        </Card>
+      )}
 
       {/* Script annoté */}
       <Card>

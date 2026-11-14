@@ -3,7 +3,8 @@ import Link from "next/link";
 
 import { CheckoutLink } from "@/components/checkout-link";
 import { buttonClasses } from "@/components/ui/button";
-import { FREE_CREDITS, PRO_PRICE } from "@/lib/plans";
+import { JOURNAL_FREE_LIMIT } from "@/lib/journal";
+import { FREE_CREDITS, PRO_PRICE, PRO_PRICE_PER_DAY } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 type Cta = {
@@ -15,17 +16,18 @@ type Cta = {
 };
 
 const FREE_FEATURES = [
-  `${FREE_CREDITS} crédits offerts à l'inscription`,
-  "Les 3 outils IA : Cloneur, Anti-Dropoff, Série 7 jours",
+  `${FREE_CREDITS} scripts générés par l'IA, sur les 5 outils`,
+  "Courbe de rétention illimitée",
+  "Studio téléprompteur illimité",
+  `Journal de performance : ${JOURNAL_FREE_LIMIT} vidéos, ta 1re tendance`,
   "Simulateur de score viral illimité",
-  "Sauvegarde de tes scripts",
 ];
 
 const PRO_FEATURES = [
-  "Générations illimitées, sans compteur",
-  "Les 3 outils IA : Cloneur, Anti-Dropoff, Série 7 jours",
-  "Simulateur de score viral illimité",
-  "Bibliothèque de scripts sauvegardés",
+  "Scripts IA illimités : Blueprint, Cloneur, Anti-Dropoff, Série, Hooks",
+  "Journal illimité, toutes tes tendances et ta formule de prochaine vidéo",
+  "Courbe de rétention, Studio et simulateur illimités",
+  "Profil créateur appliqué à chaque génération",
   "Sans engagement, annulable à tout moment",
 ];
 
@@ -76,6 +78,7 @@ export function PricingCards({ free, pro, note }: { free: Cta; pro: Cta; note?: 
           <p className="mt-4 flex items-baseline gap-2">
             <span className="text-[44px] font-semibold leading-none tracking-tightest">0 €</span>
           </p>
+          <p className="mt-2 text-[13px] text-faint">pour toujours</p>
           <p className="mt-3 text-sm text-muted">Pour tester les outils sur tes propres scripts.</p>
           <FeatureList features={FREE_FEATURES} />
           <div className="mt-8 flex-1" />
@@ -94,7 +97,8 @@ export function PricingCards({ free, pro, note }: { free: Cta; pro: Cta; note?: 
             <span className="text-[44px] font-semibold leading-none tracking-tightest">{PRO_PRICE}</span>
             <span className="text-sm text-muted">/ mois</span>
           </p>
-          <p className="mt-3 text-sm text-muted">Pour publier tous les jours sans compter.</p>
+          {PRO_PRICE_PER_DAY && <p className="mt-2 text-[13px] text-faint">soit {PRO_PRICE_PER_DAY} par jour</p>}
+          <p className="mt-3 text-sm text-muted">Pour publier souvent, sans compter.</p>
           <FeatureList features={PRO_FEATURES} />
           <div className="mt-8 flex-1" />
           <CtaButton cta={pro} variant="primary" />

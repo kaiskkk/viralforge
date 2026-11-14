@@ -1,9 +1,10 @@
-import { ArrowUpRight, Bookmark, Clapperboard, UserRound } from "lucide-react";
+import { ArrowUpRight, Bookmark, ChartSpline, Clapperboard, NotebookPen, UserRound } from "lucide-react";
 import Link from "next/link";
 
 import { CheckoutLink } from "@/components/checkout-link";
 import { BlueprintModule } from "@/components/dashboard/blueprint-module";
 import { InstallCard } from "@/components/dashboard/install-card";
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { SavedScriptRow } from "@/components/dashboard/saved-script-row";
 import { ToolIcon } from "@/components/tool-icon";
 import { Card } from "@/components/ui/card";
@@ -16,11 +17,12 @@ import { TOOLS, WRITING_TOOL_IDS } from "@/lib/tools";
 export default async function DashboardPage() {
   const viewer = await requireViewer();
 
-  const { data: recent } = await createClient()
-    .from("saved_scripts")
-    .select("id, tool, title, created_at")
-    .order("created_at", { ascending: false })
-    .limit(4);
+  const supabase = createClient();
+  const [{ data: recent }, journal] = await Promise.all([
+    supabase.from("saved_scripts").select("id, tool, title, created_at").order("created_at", { ascending: false }).limit(4),
+    supabase.from("video_logs").select("id", { count: "exact", head: true }).eq("user_id", viewer.id),
+  ]);
+  const generatedDone = isPro(viewer.plan) || viewer.credits < FREE_CREDITS || (recent?.length ?? 0) > 0;
 
   const status = isPro(viewer.plan)
     ? "Plan Pro : tes générations sont illimitées."
@@ -43,6 +45,12 @@ export default async function DashboardPage() {
       </header>
 
       <BlueprintModule />
+
+      <OnboardingChecklist
+        profileDone={!isProfileEmpty(viewer.profile)}
+        generatedDone={generatedDone}
+        journalDone={(journal.count ?? 0) > 0}
+      />
 
       <InstallCard />
 
@@ -72,6 +80,42 @@ export default async function DashboardPage() {
             </Link>
           );
         })}
+      </section>
+
+      <section aria-label="Analyser" className="grid gap-3 sm:gap-4 md:grid-cols-2">
+        {[
+          {
+            href: "/dashboard/retention",
+            icon: ChartSpline,
+            badge: "Gratuit · illimité",
+            title: "Courbe de rétention",
+            text: "Tape ton script : chaque phrase est mesurée en direct, et la courbe montre à quelle seconde les gens décrochent.",
+          },
+          {
+            href: "/dashboard/journal",
+            icon: NotebookPen,
+            badge: "Nouveau",
+            title: "Journal de performance",
+            text: "Note les vrais chiffres de tes vidéos : ViralForge trouve ta durée, ton style de hook et ton jour qui marchent le mieux.",
+          },
+        ].map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="hairline group flex gap-4 rounded-2xl bg-surface p-5 transition-colors hover:border-white/[0.16] hover:bg-elevated"
+          >
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/[0.06] text-fg">
+              <card.icon className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="text-[15px] font-semibold tracking-tight">{card.title}</span>
+                <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">{card.badge}</span>
+              </span>
+              <span className="mt-1.5 block text-[13px] leading-relaxed text-muted">{card.text}</span>
+            </span>
+          </Link>
+        ))}
       </section>
 
       <section aria-label="Studio et profil" className="grid gap-4 md:grid-cols-[1.4fr_1fr]">

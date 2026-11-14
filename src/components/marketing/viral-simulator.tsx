@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { ShareScoreButton } from "@/components/marketing/share-score-button";
+import { retentionTone, SingleRetentionChart } from "@/components/retention-report";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FREE_CREDITS } from "@/lib/plans";
 import { cn } from "@/lib/utils";
+import { analyzeRetention, type RetentionAnalysis } from "@/lib/retention";
 import { MIN_WORDS, scoreScript, type ViralScore } from "@/lib/viral-score";
 
 const EXAMPLE = `Bonjour à tous, aujourd'hui je vais vous parler de productivité. En fait, je pense que beaucoup de gens ont du mal à s'organiser au quotidien et du coup ils perdent vraiment beaucoup de temps sur des choses qui ne sont pas forcément importantes. Moi j'utilise une méthode qui est assez simple et qui consiste à noter trois tâches le matin. Voilà, c'était ma méthode, j'espère que ça vous a plu.`;
@@ -118,6 +120,7 @@ function CriterionRow({ label, score, insight }: { label: string; score: number;
 export function ViralSimulator() {
   const [text, setText] = useState("");
   const [result, setResult] = useState<ViralScore | null>(null);
+  const [retention, setRetention] = useState<RetentionAnalysis | null>(null);
   const [tooShort, setTooShort] = useState(false);
   // Après la première analyse, le score suit les modifications en direct.
   const [live, setLive] = useState(false);
@@ -127,6 +130,7 @@ export function ViralSimulator() {
     const timeout = setTimeout(() => {
       const next = scoreScript(text);
       setResult(next);
+      setRetention(next ? analyzeRetention(text) : null);
       setTooShort(next === null);
     }, 250);
     return () => clearTimeout(timeout);
@@ -135,6 +139,7 @@ export function ViralSimulator() {
   function analyze(source = text) {
     const next = scoreScript(source);
     setResult(next);
+    setRetention(next ? analyzeRetention(source) : null);
     setTooShort(next === null);
     setLive(true);
   }
@@ -253,6 +258,21 @@ export function ViralSimulator() {
           )}
         </div>
       </div>
+
+      {result && retention && (
+        <div className="animate-fade-up border-t border-white/[0.06] px-3 pb-4 pt-5 sm:px-5" data-testid="simulator-retention">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 px-2">
+            <p className="text-[13px] font-medium">
+              Ta courbe de rétention estimée :{" "}
+              <span className={cn("font-semibold", retentionTone(retention.finalRetention))}>
+                {retention.finalRetention} % encore là à la fin
+              </span>
+            </p>
+            <p className="text-xs text-faint">Survole la courbe : la phrase dite à chaque seconde s&apos;affiche.</p>
+          </div>
+          <SingleRetentionChart analysis={retention} height={190} />
+        </div>
+      )}
     </div>
   );
 }

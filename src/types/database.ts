@@ -143,6 +143,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      video_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          platform: "tiktok" | "reels" | "shorts" | "other";
+          hook: string;
+          published_on: string;
+          duration_seconds: number | null;
+          views: number;
+          likes: number | null;
+          comments: number | null;
+          avg_watch_pct: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          platform: "tiktok" | "reels" | "shorts" | "other";
+          hook?: string;
+          published_on?: string;
+          duration_seconds?: number | null;
+          views: number;
+          likes?: number | null;
+          comments?: number | null;
+          avg_watch_pct?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          platform?: "tiktok" | "reels" | "shorts" | "other";
+          hook?: string;
+          published_on?: string;
+          duration_seconds?: number | null;
+          views?: number;
+          likes?: number | null;
+          comments?: number | null;
+          avg_watch_pct?: number | null;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -157,6 +199,14 @@ export type Database = {
       spend_own_credit: {
         Args: Record<string, never>;
         Returns: number | null;
+      };
+      can_add_video_log: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      video_log_limit: {
+        Args: Record<string, never>;
+        Returns: number;
       };
       handle_whop_webhook: {
         Args: {

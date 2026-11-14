@@ -1,11 +1,13 @@
 import { ExternalLink, Eye, Info, MessageSquareQuote, Scissors } from "lucide-react";
 
 import { VideoThumbnail } from "@/components/dashboard/results/video-thumbnail";
+import { SingleRetentionChart } from "@/components/retention-report";
 import { ShootButton } from "@/components/dashboard/shoot-button";
 import { ToolIcon } from "@/components/tool-icon";
 import { Card, CardHeader } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import type { BlueprintOutput, VideoSource } from "@/lib/tools";
+import { analyzeRetention } from "@/lib/retention";
 import { cn } from "@/lib/utils";
 import { PLATFORM_LABELS } from "@/lib/video-url";
 import { formatDuration, speakingSeconds } from "@/lib/viral-score";
@@ -68,6 +70,7 @@ export function BlueprintResult({
 }) {
   const tone = scoreTone(output.viralScore);
   const seconds = speakingSeconds(output.script);
+  const retention = analyzeRetention(output.script);
 
   return (
     <div className="space-y-5">
@@ -122,6 +125,18 @@ export function BlueprintResult({
           </div>
         </Card>
       </div>
+
+      {retention && (
+        <Card>
+          <CardHeader
+            eyebrow="Courbe de rétention estimée de ce script"
+            title={`${retention.finalRetention} % de spectateurs encore là à la fin`}
+          />
+          <div className="px-3 py-4 sm:px-5">
+            <SingleRetentionChart analysis={retention} height={180} />
+          </div>
+        </Card>
+      )}
 
       {/* Découpage seconde par seconde */}
       <Card>

@@ -81,7 +81,7 @@ export function ProfileForm() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Profil créateur</h1>
           <p className="mt-1 text-sm leading-relaxed text-muted">
-            Dis à ViralForge qui tu es et pour qui tu crées. Les quatre outils s&apos;en servent pour
+            Dis à ViralForge qui tu es et pour qui tu crées. Tous les outils IA s&apos;en servent pour
             écrire dans ta voix, avec des exemples qui parlent à ton audience.
           </p>
         </div>

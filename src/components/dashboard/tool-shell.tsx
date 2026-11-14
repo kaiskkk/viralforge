@@ -4,11 +4,10 @@ import { CircleAlert, LoaderCircle, Sparkles, UserRound, Zap } from "lucide-reac
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { CheckoutLink } from "@/components/checkout-link";
 import { useCredits } from "@/components/dashboard/credits-context";
 import type { GenerateState } from "@/components/dashboard/use-generate";
 import { ToolIcon } from "@/components/tool-icon";
-import { Button, buttonClasses } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { isProfileEmpty, profileSummary } from "@/lib/profile";
 import { TOOLS, type ToolId } from "@/lib/tools";
 
@@ -69,15 +68,15 @@ export function GenerateButton({
   children: React.ReactNode;
   className?: string;
 }) {
-  const { plan, credits } = useCredits();
+  const { plan, credits, openUpgrade } = useCredits();
   const outOfCredits = plan === "free" && credits <= 0;
 
   if (outOfCredits) {
     return (
-      <CheckoutLink className={buttonClasses({ className: "h-11 w-full" })}>
+      <Button onClick={() => openUpgrade("no-credits")} className={className ?? "h-11 w-full"}>
         <Zap className="size-4" aria-hidden />
-        Plus de crédits : passer en Pro
-      </CheckoutLink>
+        Plus de crédits : passer en illimité
+      </Button>
     );
   }
 
@@ -125,6 +124,7 @@ function LoadingPanel({ steps }: { steps: string[] }) {
 }
 
 function ErrorPanel({ code, message }: { code: string; message: string }) {
+  const { openUpgrade } = useCredits();
   return (
     <div className="rounded-2xl border border-danger/25 bg-danger/[0.05] p-6" role="alert">
       <p className="flex items-center gap-2.5 text-sm font-medium text-danger">
@@ -133,10 +133,10 @@ function ErrorPanel({ code, message }: { code: string; message: string }) {
       </p>
       <p className="mt-2 text-sm leading-relaxed text-muted">{message}</p>
       {code === "no_credits" && (
-        <CheckoutLink className={buttonClasses({ size: "sm", className: "mt-4" })}>
+        <Button size="sm" onClick={() => openUpgrade("no-credits")} className="mt-4">
           <Zap className="size-3.5" aria-hidden />
-          Passer en Pro
-        </CheckoutLink>
+          Passer en illimité
+        </Button>
       )}
     </div>
   );
@@ -151,6 +151,39 @@ function EmptyPanel({ tool, hint }: { tool: ToolId; hint: string }) {
         </span>
         <p className="mx-auto mt-4 max-w-xs text-sm leading-relaxed text-muted">{hint}</p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Après une génération réussie, en gratuit : le solde restant, dit simplement.
+ * Au dernier crédit, rappelle que les outils sans IA restent illimités.
+ */
+function CreditNudge() {
+  const { plan, credits, openUpgrade } = useCredits();
+  if (plan !== "free") return null;
+
+  const message =
+    credits <= 0
+      ? "C'était ton dernier crédit offert. La Courbe de rétention, le Studio et le Journal restent gratuits."
+      : credits === 1
+        ? "Plus qu'1 crédit offert : garde-le pour ton meilleur sujet."
+        : `Il te reste ${credits} crédits offerts.`;
+
+  return (
+    <div
+      className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-4 py-3"
+      data-testid="credit-nudge"
+    >
+      <p className="text-[13px] leading-relaxed text-muted">{message}</p>
+      <button
+        type="button"
+        onClick={() => openUpgrade(credits <= 0 ? "no-credits" : "manual")}
+        className="inline-flex shrink-0 items-center gap-1.5 text-[13px] font-medium text-accent hover:underline hover:underline-offset-4"
+      >
+        <Zap className="size-3.5" aria-hidden />
+        Générer sans limite
+      </button>
     </div>
   );
 }
@@ -195,7 +228,12 @@ export function ResultPanel<Result>({
       {state.status === "idle" && !hideIdle && <EmptyPanel tool={tool} hint={emptyHint} />}
       {state.status === "loading" && (loading ?? <LoadingPanel steps={loadingSteps} />)}
       {state.status === "error" && <ErrorPanel code={state.code} message={state.message} />}
-      {state.status === "success" && <div className="animate-fade-up">{children(state.result)}</div>}
+      {state.status === "success" && (
+        <div className="animate-fade-up">
+          {children(state.result)}
+          <CreditNudge />
+        </div>
+      )}
     </div>
   );
 }

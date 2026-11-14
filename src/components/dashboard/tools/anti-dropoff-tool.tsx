@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AntiDropoffResult } from "@/components/dashboard/results/anti-dropoff-result";
 import { SaveButton } from "@/components/dashboard/save-button";
 import { GenerateButton, ResultPanel, ToolColumns, ToolHeader } from "@/components/dashboard/tool-shell";
 import { useGenerate } from "@/components/dashboard/use-generate";
 import { CharCount, Label, Textarea } from "@/components/ui/field";
+import { takeDraft } from "@/lib/handoff";
 import { antiDropoffInputSchema, SCRIPT_MAX_CHARS, type AntiDropoffInput } from "@/lib/tools";
 
 /** Titre de sauvegarde : le début du script analysé. */
@@ -21,6 +22,12 @@ export function AntiDropoffTool() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   // L'entrée qui a produit le résultat affiché (pour la sauvegarde).
   const [submitted, setSubmitted] = useState<AntiDropoffInput | null>(null);
+
+  // Script envoyé depuis la Courbe de rétention.
+  useEffect(() => {
+    const draft = takeDraft("antidropoff");
+    if (draft) setScript(draft);
+  }, []);
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();

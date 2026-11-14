@@ -42,7 +42,7 @@ const WEIGHTS: Record<CriterionKey, number> = {
 
 // Toutes les listes sont en minuscules et sans accents (voir normalize()).
 
-const SLOW_OPENERS = [
+export const SLOW_OPENERS = [
   "bonjour",
   "salut",
   "coucou",
@@ -65,13 +65,13 @@ const SLOW_OPENERS = [
   "so today",
 ];
 
-const DIRECT_ADDRESS = new Set([
+export const DIRECT_ADDRESS = new Set([
   "tu", "te", "toi", "ton", "ta", "tes", "t'es", "t'as",
   "vous", "votre", "vos",
   "you", "your", "you're", "you've",
 ]);
 
-const CURIOSITY_WORDS = [
+export const CURIOSITY_WORDS = [
   "secret", "erreur", "erreurs", "personne", "jamais", "arrete", "arretez", "stop",
   "pourquoi", "verite", "mensonge", "piege", "interdit", "cache",
   "incroyable", "choquant", "pire", "gratuit", "prouve", "decouvert",
@@ -81,7 +81,7 @@ const CURIOSITY_WORDS = [
   "the real reason", "what nobody",
 ];
 
-const OPEN_LOOPS = [
+export const OPEN_LOOPS = [
   "mais", "sauf que", "pourtant", "et la", "le probleme", "le truc", "resultat",
   "jusqu'a", "jusqu'au jour", "ce que j'ai", "voici", "la suite", "attends",
   "en realite", "contrairement", "au lieu de", "imagine",
@@ -89,7 +89,7 @@ const OPEN_LOOPS = [
   "instead", "wait", "here's why", "here's what", "imagine",
 ];
 
-const FILLERS = [
+export const FILLERS = [
   "en fait", "du coup", "genre", "voila", "bah", "euh", "un peu", "vraiment",
   "je pense que", "je crois que", "en quelque sorte", "pas forcement", "plus ou moins",
   "assez", "j'espere que",
@@ -98,13 +98,13 @@ const FILLERS = [
 ];
 
 /** Un impératif en ouverture interpelle le spectateur aussi sûrement qu'un « tu ». */
-const IMPERATIVE_OPENERS = new Set([
+export const IMPERATIVE_OPENERS = new Set([
   "stop", "arrete", "arretez", "regarde", "regardez", "ecoute", "ecoutez",
   "imagine", "imaginez", "oublie", "oubliez", "ne", "n'",
   "don't", "never", "look", "listen", "forget", "quit",
 ]);
 
-const CTA_WORDS = [
+export const CTA_WORDS = [
   "abonne", "abonnez", "commente", "commentez", "partage", "partagez",
   "enregistre", "enregistrez", "sauvegarde", "sauvegardez", "like",
   "lien", "dis-moi", "dis moi", "dites-moi", "ecris", "ecrivez", "envoie", "envoyez",
@@ -112,12 +112,12 @@ const CTA_WORDS = [
   "follow", "subscribe", "comment", "share", "save", "link", "tell me", "try",
 ];
 
-const CLIFFHANGER_WORDS = [
+export const CLIFFHANGER_WORDS = [
   "demain", "partie 2", "partie deux", "la suite", "prochaine video", "prochain episode",
   "tomorrow", "part 2", "part two", "next video", "next episode",
 ];
 
-function normalize(text: string): string {
+export function normalize(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
@@ -125,18 +125,18 @@ function normalize(text: string): string {
     .replace(/[’‘]/g, "'");
 }
 
-function splitSentences(text: string): string[] {
+export function splitSentences(text: string): string[] {
   return (text.match(/[^.!?…\n]+[.!?…]*/g) ?? [])
     .map((sentence) => sentence.trim())
     .filter((sentence) => /[\p{L}\p{N}]/u.test(sentence));
 }
 
-function splitWords(text: string): string[] {
+export function splitWords(text: string): string[] {
   return text.match(/[\p{L}\p{N}][\p{L}\p{N}'-]*/gu) ?? [];
 }
 
 /** Nombre d'occurrences des expressions de `terms`, en respectant les limites de mots. */
-function countTerms(normalized: string, terms: string[]): number {
+export function countTerms(normalized: string, terms: string[]): number {
   let count = 0;
   for (const term of terms) {
     const escaped = term.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

@@ -2,11 +2,13 @@
 
 import {
   Bookmark,
+  ChartSpline,
   Clapperboard,
   Infinity as InfinityIcon,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  NotebookPen,
   UserRound,
   X,
   Zap,
@@ -15,7 +17,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { CheckoutLink } from "@/components/checkout-link";
 import { useCredits } from "@/components/dashboard/credits-context";
 import { ToolIcon } from "@/components/tool-icon";
 import { buttonClasses } from "@/components/ui/button";
@@ -39,6 +40,21 @@ const TOOL_ITEMS: NavItem[] = MENU_TOOL_IDS.map((id) => ({
   label: TOOLS[id].shortName,
   icon: <ToolIcon tool={id} className="size-4" />,
 }));
+const RETENTION: NavItem = {
+  href: "/dashboard/retention",
+  label: "Courbe de rétention",
+  icon: <ChartSpline className="size-4" aria-hidden />,
+};
+const JOURNAL: NavItem = {
+  href: "/dashboard/journal",
+  label: "Journal de perf",
+  icon: <NotebookPen className="size-4" aria-hidden />,
+};
+/** Outils sans IA, listés aussi dans la feuille « Outils » du téléphone. */
+const ANALYZE_SHEET = [
+  { ...RETENTION, tagline: "Vois où les gens décrochent, avant de tourner", icon: <ChartSpline className="size-5" aria-hidden /> },
+  { ...JOURNAL, tagline: "Tes vraies stats, et ce qui marche pour toi", icon: <NotebookPen className="size-5" aria-hidden /> },
+];
 const STUDIO: NavItem = {
   href: "/dashboard/studio",
   label: "Studio",
@@ -58,6 +74,7 @@ const PROFILE: NavItem = {
 const GROUPS: { title?: string; items: NavItem[] }[] = [
   { items: [OVERVIEW] },
   { title: "Écrire", items: TOOL_ITEMS },
+  { title: "Analyser", items: [RETENTION, JOURNAL] },
   { title: "Tourner", items: [STUDIO] },
   { title: "Toi", items: [SAVED, PROFILE] },
 ];
@@ -69,7 +86,7 @@ function useIsActive() {
 }
 
 function CreditsCard() {
-  const { plan, credits } = useCredits();
+  const { plan, credits, openUpgrade } = useCredits();
 
   if (plan === "pro") {
     return (
@@ -103,10 +120,10 @@ function CreditsCard() {
           />
         ))}
       </div>
-      <CheckoutLink className={buttonClasses({ size: "sm", className: "mt-4 w-full" })}>
+      <button type="button" onClick={() => openUpgrade("manual")} className={buttonClasses({ size: "sm", className: "mt-4 w-full" })}>
         <Zap className="size-3.5" aria-hidden />
         Passer en Pro
-      </CheckoutLink>
+      </button>
     </div>
   );
 }
@@ -129,7 +146,7 @@ function SignOutButton({ className }: { className?: string }) {
   );
 }
 
-/** Feuille « Outils » du téléphone : les quatre outils d'écriture. */
+/** Feuille « Outils » du téléphone : outils d'écriture et d'analyse. */
 function ToolsSheet({ onClose }: { onClose: () => void }) {
   const isActive = useIsActive();
 
@@ -142,9 +159,9 @@ function ToolsSheet({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Outils">
       <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-label="Fermer" />
-      <div className="absolute inset-x-0 bottom-0 animate-fade-up rounded-t-3xl border-t border-white/[0.08] bg-surface p-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 max-h-[90dvh] animate-fade-up overflow-y-auto rounded-t-3xl border-t border-white/[0.08] bg-surface p-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
         <div className="mb-3 flex items-center justify-between px-1">
-          <p className="text-sm font-semibold">Outils d&apos;écriture</p>
+          <p className="text-sm font-semibold">Outils</p>
           <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-full bg-white/[0.06]" aria-label="Fermer">
             <X className="size-4" aria-hidden />
           </button>
@@ -171,6 +188,25 @@ function ToolsSheet({ onClose }: { onClose: () => void }) {
               </Link>
             </li>
           ))}
+          {ANALYZE_SHEET.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onClose}
+                aria-current={isActive(item.href) ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-3 rounded-2xl p-3 transition-colors",
+                  isActive(item.href) ? "bg-white/[0.07]" : "hover:bg-white/[0.04]",
+                )}
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/[0.06] text-fg">{item.icon}</span>
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-medium">{item.label}</span>
+                  <span className="line-clamp-1 block text-xs text-muted">{item.tagline}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
         </ul>
       </div>
     </div>
@@ -186,7 +222,7 @@ export function Sidebar({ email }: { email: string }) {
   // La feuille se referme quand on change de page.
   useEffect(() => setToolsOpen(false), [pathname]);
 
-  const onToolPage = TOOL_ITEMS.some((item) => isActive(item.href));
+  const onToolPage = [...TOOL_ITEMS, RETENTION, JOURNAL].some((item) => isActive(item.href));
   const tabs = [
     { href: OVERVIEW.href, label: "Accueil", icon: <LayoutDashboard className="size-5" aria-hidden /> },
     { href: null, label: "Outils", icon: <LayoutGrid className="size-5" aria-hidden /> },
