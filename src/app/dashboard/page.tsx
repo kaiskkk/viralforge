@@ -1,7 +1,7 @@
 import { ArrowUpRight, Bookmark, ChartSpline, Clapperboard, NotebookPen, UserRound } from "lucide-react";
 import Link from "next/link";
 
-import { CheckoutLink } from "@/components/checkout-link";
+import { UpgradeInline } from "@/components/dashboard/upgrade-inline";
 import { BlueprintModule } from "@/components/dashboard/blueprint-module";
 import { InstallCard } from "@/components/dashboard/install-card";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
@@ -37,9 +37,9 @@ export default async function DashboardPage() {
         <p className="mt-1.5 text-sm text-muted">
           {status}{" "}
           {!isPro(viewer.plan) && (
-            <CheckoutLink className="text-accent underline-offset-4 hover:underline">
+            <UpgradeInline className="text-accent underline underline-offset-4 hover:no-underline">
               Passer en Pro
-            </CheckoutLink>
+            </UpgradeInline>
           )}
         </p>
       </header>

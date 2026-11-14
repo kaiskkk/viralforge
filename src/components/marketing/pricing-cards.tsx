@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
 
-import { CheckoutLink } from "@/components/checkout-link";
+import { CheckoutButton } from "@/components/checkout-button";
 import { buttonClasses } from "@/components/ui/button";
 import { JOURNAL_FREE_LIMIT } from "@/lib/journal";
 import { FREE_CREDITS, PRO_PRICE, PRO_PRICE_PER_DAY } from "@/lib/plans";
@@ -31,7 +31,7 @@ const PRO_FEATURES = [
   "Sans engagement, annulable à tout moment",
 ];
 
-function CtaButton({ cta, variant }: { cta: Cta; variant: "primary" | "secondary" }) {
+function CtaButton({ cta, variant, email }: { cta: Cta; variant: "primary" | "secondary"; email?: string }) {
   const className = buttonClasses({ variant, className: "w-full" });
 
   if (!cta.href) {
@@ -41,11 +41,12 @@ function CtaButton({ cta, variant }: { cta: Cta; variant: "primary" | "secondary
       </span>
     );
   }
+  // Paiement Pro : fenêtre intégrée au site, pas de page Whop séparée.
   if (cta.external) {
     return (
-      <CheckoutLink href={cta.href} className={className}>
+      <CheckoutButton email={email} className={className}>
         {cta.label}
-      </CheckoutLink>
+      </CheckoutButton>
     );
   }
   return (
@@ -68,7 +69,7 @@ function FeatureList({ features }: { features: string[] }) {
   );
 }
 
-export function PricingCards({ free, pro, note }: { free: Cta; pro: Cta; note?: string }) {
+export function PricingCards({ free, pro, note, email }: { free: Cta; pro: Cta; note?: string; email?: string }) {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="grid gap-4 md:grid-cols-2">
@@ -82,7 +83,7 @@ export function PricingCards({ free, pro, note }: { free: Cta; pro: Cta; note?: 
           <p className="mt-3 text-sm text-muted">Pour tester les outils sur tes propres scripts.</p>
           <FeatureList features={FREE_FEATURES} />
           <div className="mt-8 flex-1" />
-          <CtaButton cta={free} variant="secondary" />
+          <CtaButton cta={free} variant="secondary" email={email} />
         </div>
 
         {/* Pro */}
@@ -101,7 +102,7 @@ export function PricingCards({ free, pro, note }: { free: Cta; pro: Cta; note?: 
           <p className="mt-3 text-sm text-muted">Pour publier souvent, sans compter.</p>
           <FeatureList features={PRO_FEATURES} />
           <div className="mt-8 flex-1" />
-          <CtaButton cta={pro} variant="primary" />
+          <CtaButton cta={pro} variant="primary" email={email} />
         </div>
       </div>
 

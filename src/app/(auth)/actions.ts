@@ -86,6 +86,28 @@ export async function login(_previous: AuthState, formData: FormData): Promise<A
   redirect(safeNextPath(formData.get("next")));
 }
 
+export async function requestPasswordReset(_previous: AuthState, formData: FormData): Promise<AuthState> {
+  if (!isSupabaseConfigured) return { error: NOT_CONFIGURED };
+
+  const email = z.string().trim().toLowerCase().email().safeParse(formData.get("email"));
+  // Réponse neutre dans tous les cas : ne révèle pas si un compte existe.
+  const neutral: AuthState = {
+    notice:
+      "Si un compte existe avec cette adresse, un e-mail avec un lien de réinitialisation vient de partir. Pense à regarder tes spams.",
+  };
+  if (!email.success) return { error: "Adresse e-mail invalide." };
+
+  const { error } = await createClient().auth.resetPasswordForEmail(email.data, {
+    redirectTo: `${siteOrigin()}/auth/callback?next=${encodeURIComponent("/dashboard/settings")}`,
+  });
+  if (error) {
+    // Les limites d'envoi méritent un vrai message ; le reste reste neutre.
+    if (error.code && ERROR_MESSAGES[error.code]) return { error: ERROR_MESSAGES[error.code] };
+    console.error("[requestPasswordReset]", error.code, error.message);
+  }
+  return neutral;
+}
+
 export async function signup(_previous: AuthState, formData: FormData): Promise<AuthState> {
   if (!isSupabaseConfigured) return { error: NOT_CONFIGURED };
 

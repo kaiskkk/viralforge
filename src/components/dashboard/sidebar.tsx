@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   LogOut,
   NotebookPen,
+  Settings,
   UserRound,
   X,
   Zap,
@@ -70,13 +71,18 @@ const PROFILE: NavItem = {
   label: "Profil créateur",
   icon: <UserRound className="size-4" aria-hidden />,
 };
+const SETTINGS: NavItem = {
+  href: "/dashboard/settings",
+  label: "Paramètres",
+  icon: <Settings className="size-4" aria-hidden />,
+};
 
 const GROUPS: { title?: string; items: NavItem[] }[] = [
   { items: [OVERVIEW] },
   { title: "Écrire", items: TOOL_ITEMS },
   { title: "Analyser", items: [RETENTION, JOURNAL] },
   { title: "Tourner", items: [STUDIO] },
-  { title: "Toi", items: [SAVED, PROFILE] },
+  { title: "Toi", items: [SAVED, PROFILE, SETTINGS] },
 ];
 
 function useIsActive() {
@@ -297,6 +303,14 @@ export function Sidebar({ email }: { email: string }) {
                   {credits > 1 ? "s" : ""}
                 </>
               )}
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              aria-label="Paramètres"
+              title="Paramètres"
+              className="grid size-8 place-items-center rounded-lg text-faint transition-colors hover:bg-white/[0.06] hover:text-fg"
+            >
+              <Settings className="size-4" aria-hidden />
             </Link>
             <SignOutButton />
           </div>

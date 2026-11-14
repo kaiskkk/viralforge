@@ -1,11 +1,10 @@
 "use client";
 
-import { Check, Crown, X, Zap } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ArrowLeft, Check, Crown, Lock, X, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-import { CheckoutLink } from "@/components/checkout-link";
+import { CheckoutEmbed } from "@/components/checkout-embed";
 import { useCredits, type UpgradeReason } from "@/components/dashboard/credits-context";
-import { buttonClasses } from "@/components/ui/button";
 import { PLAN_COMPARISON } from "@/lib/plan-comparison";
 import { FREE_CREDITS, PRO_PRICE, PRO_PRICE_PER_DAY } from "@/lib/plans";
 
@@ -22,9 +21,12 @@ export function UpgradeDialog() {
   const { plan, credits, email, upgrade, closeUpgrade } = useCredits();
   const closeButton = useRef<HTMLButtonElement>(null);
   const open = upgrade !== null && plan === "free";
+  // Deux étapes : l'argumentaire, puis le paiement intégré, sans quitter la page.
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    setPaying(false);
     closeButton.current?.focus();
     const onKey = (event: KeyboardEvent) => event.key === "Escape" && closeUpgrade();
     window.addEventListener("keydown", onKey);
@@ -53,6 +55,27 @@ export function UpgradeDialog() {
           <X className="size-4" aria-hidden />
         </button>
 
+        {paying ? (
+          <div>
+            <button
+              type="button"
+              onClick={() => setPaying(false)}
+              className="inline-flex items-center gap-1.5 text-[13px] text-muted transition-colors hover:text-fg"
+            >
+              <ArrowLeft className="size-3.5" aria-hidden />
+              Retour
+            </button>
+            <h2 id="upgrade-title" className="mt-3 pr-8 text-xl font-semibold tracking-tight">
+              Passer en Pro — {PRO_PRICE}/mois
+            </h2>
+            <p className="mb-5 mt-1.5 flex items-center gap-1.5 text-[13px] text-muted">
+              <Lock className="size-3.5 text-accent" aria-hidden />
+              Paiement sécurisé, ici même. Sans engagement.
+            </p>
+            <CheckoutEmbed email={email} />
+          </div>
+        ) : (
+          <>
         <span className="grid size-11 place-items-center rounded-xl bg-accent text-black">
           <Crown className="size-5" aria-hidden />
         </span>
@@ -102,18 +125,23 @@ export function UpgradeDialog() {
           {PRO_PRICE_PER_DAY && <p className="text-[13px] text-muted">soit {PRO_PRICE_PER_DAY} par jour</p>}
         </div>
 
-        <CheckoutLink className={buttonClasses({ size: "lg", className: "mt-5 w-full" })}>
+        <button
+          type="button"
+          onClick={() => setPaying(true)}
+          className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-accent px-7 text-[15px] font-medium text-black transition hover:brightness-110 active:scale-[0.98]"
+        >
           <Zap className="size-4" aria-hidden />
           Passer en Pro
-        </CheckoutLink>
+        </button>
         <button type="button" onClick={closeUpgrade} className="mt-2 h-10 w-full text-[13px] text-muted transition-colors hover:text-fg">
           Plus tard
         </button>
 
         <p className="mt-3 text-center text-[12px] leading-relaxed text-faint">
-          Sans engagement : tu résilies quand tu veux depuis ton compte Whop. Paie avec l&apos;adresse{" "}
-          <span className="text-muted">{email}</span> : Pro s&apos;active tout seul, recharge simplement cette page.
+          Sans engagement, résiliable depuis tes paramètres. Le paiement s&apos;ouvre ici, dans la page.
         </p>
+          </>
+        )}
       </div>
     </div>
   );

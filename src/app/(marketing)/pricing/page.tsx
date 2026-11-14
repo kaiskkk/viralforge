@@ -56,7 +56,7 @@ export default async function PricingPage() {
             </p>
           </div>
           <div className="mt-14">
-            <PricingCards free={free} pro={pro} note={note} />
+            <PricingCards free={free} pro={pro} note={note} email={viewer?.email} />
           </div>
         </div>
       </section>

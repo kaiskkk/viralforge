@@ -29,6 +29,12 @@ SaaS d'écriture de scripts pour vidéos courtes (TikTok, Reels, Shorts).
   ouverte quand les crédits ou le journal gratuit sont épuisés. Aucune fausse urgence.
 - **Studio** : téléprompteur plein écran par-dessus la caméra, avec enregistrement vidéo dans
   le navigateur (MediaRecorder). Rien n'est envoyé au serveur.
+- **Compte et sécurité** (`/dashboard/settings`) : changement de mot de passe (avec revérification
+  de l'actuel), « mot de passe oublié » par e-mail, et résiliation de l'abonnement Pro. Connecté,
+  la page d'accueil mène directement au tableau de bord.
+- **Paiement Pro intégré** : le formulaire de paiement Whop s'ouvre dans une fenêtre, sur le site
+  (`@whop/checkout`), e-mail pré-rempli pour activer le bon compte ; un lien vers la page Whop
+  reste disponible en secours.
 - **Application installable** (manifeste, icônes, plein écran sur iPhone) et navigation par
   onglets en bas d'écran sur téléphone.
 - **Carte de score à partager** depuis le simulateur (image générée dans le navigateur).
@@ -109,9 +115,16 @@ qualité, pour environ vingt fois plus cher.
 
 ### 3. Paiement
 
-Tous les boutons « Passer en Pro » du site ouvrent le lien de paiement Whop défini dans
-`src/lib/plans.ts` (`CHECKOUT_URL`). Pour le remplacer sans toucher au code, renseigne
-`NEXT_PUBLIC_CHECKOUT_URL`.
+Tous les boutons « Passer en Pro » ouvrent le **paiement intégré** (`@whop/checkout`,
+`src/components/checkout-embed.tsx`) : le formulaire Whop s'affiche dans une fenêtre sur le site,
+sans nouvel onglet, avec l'e-mail du compte pré-rempli. Le plan vient de `CHECKOUT_URL`
+(`src/lib/plans.ts`) ; `NEXT_PUBLIC_CHECKOUT_URL` le remplace sans toucher au code. Si le cadre
+ne se charge pas, un lien vers la page de paiement Whop reste proposé.
+
+**Résiliation en un clic (optionnel).** La page Paramètres propose « Résilier mon abonnement ».
+Pour qu'elle agisse directement via l'API Whop (sans que le client aille sur Whop), renseigne
+`WHOP_API_KEY` (clé serveur Whop avec la permission `membership:cancel`) : la résiliation est alors
+programmée pour la fin de la période. Sans cette clé, le bouton renvoie vers la gestion sur Whop.
 
 **Activation du plan Pro.** Whop prévient le site à chaque paiement (webhook). La route
 `src/app/api/webhooks/whop/route.ts` transmet la notification telle quelle à la fonction SQL

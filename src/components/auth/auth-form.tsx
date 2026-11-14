@@ -85,7 +85,14 @@ export function AuthForm({
           </div>
 
           <div>
-            <Label htmlFor="password">Mot de passe</Label>
+            <div className="flex items-baseline justify-between">
+              <Label htmlFor="password">Mot de passe</Label>
+              {mode === "login" && (
+                <Link href="/forgot-password" className="mb-2 text-[13px] text-muted underline-offset-4 hover:text-fg hover:underline">
+                  Oublié ?
+                </Link>
+              )}
+            </div>
             <Input
               id="password"
               name="password"

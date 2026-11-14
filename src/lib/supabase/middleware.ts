@@ -62,7 +62,9 @@ export async function updateSession(request: NextRequest) {
     return redirectTo(`/login?next=${encodeURIComponent(pathname)}`);
   }
 
-  if (user && AUTH_PAGES.has(pathname)) {
+  // Déjà connecté : les pages de connexion et la page d'accueil mènent droit
+  // au tableau de bord, pour « retomber » directement dans l'app.
+  if (user && (AUTH_PAGES.has(pathname) || pathname === "/")) {
     return redirectTo("/dashboard");
   }
 
