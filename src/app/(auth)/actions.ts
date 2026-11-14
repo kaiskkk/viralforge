@@ -98,7 +98,7 @@ export async function requestPasswordReset(_previous: AuthState, formData: FormD
   if (!email.success) return { error: "Adresse e-mail invalide." };
 
   const { error } = await createClient().auth.resetPasswordForEmail(email.data, {
-    redirectTo: `${siteOrigin()}/auth/callback?next=${encodeURIComponent("/dashboard/settings")}`,
+    redirectTo: `${siteOrigin()}/reset-password`,
   });
   if (error) {
     // Les limites d'envoi méritent un vrai message ; le reste reste neutre.

@@ -26,7 +26,11 @@ export async function GET(request: NextRequest) {
       if (!error) return NextResponse.redirect(new URL(next, request.url));
     } else if (tokenHash && type) {
       const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-      if (!error) return NextResponse.redirect(new URL(next, request.url));
+      // Récupération de mot de passe : on va choisir un nouveau mot de passe.
+      if (!error) {
+        const target = type === "recovery" ? "/reset-password" : next;
+        return NextResponse.redirect(new URL(target, request.url));
+      }
     }
   }
 

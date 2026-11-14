@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
+import { RecoveryCatcher } from "@/components/auth/recovery-catcher";
+
 import "./globals.css";
 
 const geistSans = localFont({
@@ -51,7 +53,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <RecoveryCatcher />
+        {children}
+      </body>
     </html>
   );
 }

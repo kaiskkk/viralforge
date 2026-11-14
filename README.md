@@ -86,7 +86,10 @@ outils demandent la configuration ci-dessous.
    formée est ignorée.
 4. **Authentication → URL Configuration** :
    - Site URL : `https://ton-domaine.com` (ou `http://localhost:3000` en local)
-   - Redirect URLs : ajoute `https://ton-domaine.com/**`
+   - Redirect URLs : ajoute `https://ton-domaine.com/**` (couvre `/reset-password`, la
+     cible du lien « mot de passe oublié »). Même si un lien de récupération retombe sur la
+     Site URL, le site le rattrape (`src/components/auth/recovery-catcher.tsx`) et ouvre la
+     page de choix d'un nouveau mot de passe (`/reset-password`).
 5. **Authentication → Sign In / Providers → Email** : le service d'e-mail par défaut de
    Supabase n'écrit qu'aux membres du projet. Désactive « Confirm email », ou branche un
    SMTP (Resend, Brevo…) pour garder la confirmation.
