@@ -3,15 +3,14 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 
 /**
- * Où tournent les générations :
+ * Quel modèle écrit les scripts :
  *
- * - "browser" (par défaut) : le navigateur du visiteur appelle directement le
- *   générateur gratuit (src/lib/ai/free-engine.ts). Aucune clé, aucun coût pour
- *   le site, et la limite de débit s'applique à chaque visiteur séparément.
- * - "server" : dès que ANTHROPIC_API_KEY contient une vraie clé, le serveur
- *   appelle Claude. Meilleure qualité, facturée à l'usage sur ton compte.
+ * - "free" (par défaut) : le générateur gratuit (src/lib/ai/free-engine.ts).
+ *   Aucune clé, aucun coût, mais une limite de débit partagée par tout le site.
+ * - "claude" : dès que ANTHROPIC_API_KEY contient une vraie clé. Meilleure
+ *   qualité, sans file d'attente, facturée à l'usage sur ton compte Anthropic.
  */
-export type AiEngine = "browser" | "server";
+export type AiEngine = "free" | "claude";
 
 /**
  * Modèle Claude utilisé côté serveur. Claude Haiku 5.5 par défaut : rapide et
@@ -34,7 +33,7 @@ export function getAnthropicApiKey(): string | null {
 }
 
 export function getAiEngine(): AiEngine {
-  return getAnthropicApiKey() ? "server" : "browser";
+  return getAnthropicApiKey() ? "claude" : "free";
 }
 
 let anthropic: Anthropic | undefined;

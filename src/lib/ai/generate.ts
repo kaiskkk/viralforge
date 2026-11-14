@@ -5,9 +5,11 @@ import type { z } from "zod";
 
 import type { GenerateRequest, ToolOutputs } from "@/lib/tools";
 
-import { getAnthropic, MODEL, SUPPORTS_REFUSAL_FALLBACK } from "./client";
+import { getAiEngine, getAnthropic, MODEL, SUPPORTS_REFUSAL_FALLBACK } from "./client";
+import { generateWithFreeEngine } from "./free-engine";
 import { finalizeOutput, GenerationError, getToolSpec } from "./tool-specs";
 
+export { FreeEngineError } from "./free-engine";
 export { GenerationError } from "./tool-specs";
 
 /** Génération côté serveur, avec la clé Anthropic du propriétaire du site. */
@@ -53,6 +55,7 @@ async function generateStructured<Schema extends z.ZodType>(options: {
 
 /** Exécute l'outil demandé et renvoie son résultat typé. */
 export async function runTool(request: GenerateRequest): Promise<ToolOutputs[GenerateRequest["tool"]]> {
+  if (getAiEngine() === "free") return generateWithFreeEngine(request);
   const output = await generateStructured(getToolSpec(request));
   return finalizeOutput(request.tool, output as ToolOutputs[typeof request.tool]);
 }

@@ -1,6 +1,6 @@
 /**
  * Ce que chaque outil demande au modèle, et comment sa réponse est finalisée.
- * Partagé entre le serveur (clé Anthropic) et le navigateur (générateur gratuit).
+ * Partagé entre le générateur gratuit et Claude.
  */
 
 import type { z } from "zod";

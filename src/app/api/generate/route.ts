@@ -1,28 +1,23 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
-import { getAiEngine } from "@/lib/ai/client";
-import { GenerationError, runTool } from "@/lib/ai/generate";
+import { FreeEngineError, GenerationError, runTool } from "@/lib/ai/generate";
 import { CreditsSetupError, debitCredit, hasServiceRole, readBalance, refundCredit } from "@/lib/credits";
 import { creditsUnavailable, fail, getSessionUser, noCredits } from "@/lib/generate-api";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { generateRequestSchema } from "@/lib/tools";
 
 export const runtime = "nodejs";
-// Une génération côté serveur peut durer plusieurs dizaines de secondes.
+// Une génération peut durer plusieurs dizaines de secondes, file d'attente comprise.
 export const maxDuration = 300;
 
 /**
  * POST /api/generate
  * Corps : { tool: "clone" | "antidropoff" | "series", input: {...} }
+ * Réponse : { result, plan, credits }  — credits vaut null en Pro (illimité).
  *
- * Vérifie la session, la requête et les crédits, puis :
- * - générateur gratuit (par défaut) : répond { engine: "browser", plan, credits }.
- *   Le navigateur génère lui-même, puis appelle /api/generate/commit pour
- *   débiter le crédit d'une génération réussie ;
- * - avec ANTHROPIC_API_KEY : génère ici et répond { result, plan, credits }.
- *
- * `credits` vaut null en Pro (illimité). Une génération qui échoue ne coûte
+ * Le modèle est le générateur gratuit, ou Claude si ANTHROPIC_API_KEY est
+ * renseignée (voir src/lib/ai/client.ts). Une génération qui échoue ne coûte
  * jamais de crédit.
  */
 export async function POST(request: Request) {
@@ -51,10 +46,10 @@ export async function POST(request: Request) {
 
   // 3. Crédits (plan free)
   const free = plan === "free";
-  // Avec la clé secrète et la génération côté serveur, le crédit est réservé
-  // avant l'appel au modèle puis rendu en cas d'échec : la dépense d'API reste
-  // bornée même avec des requêtes simultanées.
-  const reserveFirst = free && getAiEngine() === "server" && hasServiceRole();
+  // Avec la clé secrète, le crédit est réservé avant l'appel au modèle puis
+  // rendu en cas d'échec : la consommation reste bornée même avec des
+  // requêtes simultanées. Sans elle, il est débité après une génération réussie.
+  const reserveFirst = free && hasServiceRole();
 
   let credits: number | null = null;
   if (free) {
@@ -67,12 +62,7 @@ export async function POST(request: Request) {
     if (credits === null || (!reserveFirst && credits <= 0)) return noCredits();
   }
 
-  // 4a. Générateur gratuit : le navigateur prend le relais.
-  if (getAiEngine() === "browser") {
-    return NextResponse.json({ engine: "browser", plan, credits });
-  }
-
-  // 4b. Génération côté serveur avec Claude.
+  // 4. Génération
   let result: Awaited<ReturnType<typeof runTool>>;
   try {
     result = await runTool(parsed.data);
@@ -105,7 +95,19 @@ function toErrorResponse(error: unknown, creditNote: string, credits: number | n
     return fail(
       422,
       "refused",
-      `Claude a décliné cette demande. Reformule ton texte et réessaie.${creditNote}`,
+      `Le modèle a décliné cette demande. Reformule ton texte et réessaie.${creditNote}`,
+      credits,
+    );
+  }
+
+  // Générateur gratuit saturé (limite de débit partagée) ou injoignable.
+  if (error instanceof FreeEngineError) {
+    return fail(
+      503,
+      "busy",
+      error.code === "busy"
+        ? `Le générateur gratuit est très demandé en ce moment. Réessaie dans une minute.${creditNote}`
+        : `Le générateur gratuit est momentanément indisponible. Réessaie dans quelques minutes.${creditNote}`,
       credits,
     );
   }

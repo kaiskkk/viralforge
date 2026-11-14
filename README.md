@@ -57,22 +57,22 @@ revient sur `/auth/callback`.
 
 ### 2. IA
 
-**Par défaut, rien à configurer.** Les outils utilisent l'API publique de
+**Par défaut, rien à configurer.** Les outils utilisent l'API publique « Classic » de
 [Pollinations](https://github.com/pollinations/pollinations/blob/main/APIDOCS.md) (modèle
-GPT-OSS 20B) : gratuite, sans clé ni compte. Elle est appelée **depuis le navigateur du
-visiteur** (`src/lib/ai/free-engine.ts`), si bien que sa limite de débit (une génération à
-la fois, environ 30 secondes entre deux) s'applique à chaque visiteur séparément : le site
-n'a ni facture ni plafond global. Quand la limite est atteinte, l'interface affiche un compte
-à rebours et relance seule.
+GPT-OSS 20B), appelée depuis le serveur (`src/lib/ai/free-engine.ts`) : gratuite, sans clé ni
+compte. Sa limite de débit s'applique par adresse IP, donc à tout le site : une génération à
+la fois, environ 30 secondes entre deux. Quand elle est atteinte, le serveur attend le délai
+demandé puis relance ; au-delà, l'utilisateur est invité à réessayer, sans perdre de crédit.
 
 C'est un service gratuit « au mieux » : pas de garantie de disponibilité, et ses conditions
-peuvent changer.
+peuvent changer. Il refuse les appels faits directement depuis un navigateur (vérification
+anti-robot), d'où le passage par le serveur.
 
-**Option : Claude.** Pour une meilleure qualité d'écriture, crée une clé sur
-[platform.claude.com](https://platform.claude.com/settings/keys) et renseigne
-`ANTHROPIC_API_KEY` : les générations passent alors par le serveur, avec Claude Haiku 5.5
-(moins d'un centime par génération, facturé à l'usage). `ANTHROPIC_MODEL=claude-sonnet-5-5`
-privilégie encore la qualité, pour environ vingt fois plus cher.
+**Option : Claude.** Pour une meilleure qualité d'écriture et sans file d'attente, crée une
+clé sur [platform.claude.com](https://platform.claude.com/settings/keys) et renseigne
+`ANTHROPIC_API_KEY` : les outils passent alors par Claude Haiku 5.5 (moins d'un centime par
+génération, facturé à l'usage). `ANTHROPIC_MODEL=claude-sonnet-5-5` privilégie encore la
+qualité, pour environ vingt fois plus cher.
 
 ### 3. Paiement
 
@@ -129,7 +129,7 @@ src/
 │   └── dashboard/                  Sidebar, formulaires et résultats des outils
 ├── lib/
 │   ├── supabase/                   Clients navigateur, serveur, admin, middleware
-│   ├── ai/                         Prompts, générateur gratuit (navigateur), Claude (serveur)
+│   ├── ai/                         Prompts, générateur gratuit, Claude
 │   ├── tools.ts                    Schémas Zod d'entrée et de sortie des 3 outils
 │   ├── viral-score.ts              Moteur du simulateur
 │   ├── credits.ts · plans.ts · auth.ts · utils.ts
@@ -140,23 +140,22 @@ src/
 
 Une génération qui échoue ne coûte jamais de crédit. En `pro`, aucun crédit n'est consommé.
 
-- **Générateur gratuit** : `/api/generate` vérifie le solde, le navigateur génère, puis
-  `/api/generate/commit` débite le crédit. L'IA ne coûtant rien, ce décompte sert à
-  distinguer les plans, pas à protéger une dépense.
-- **Claude** : avec la clé secrète, le crédit est réservé **avant** l'appel au modèle par un
-  `UPDATE` SQL atomique, et rendu si la génération échoue ; la dépense d'API reste bornée
-  même avec des requêtes en parallèle.
+- **Avec la clé secrète** : le crédit est réservé **avant** l'appel au modèle par un `UPDATE`
+  SQL atomique (`consume_credit`), et rendu si la génération échoue. La consommation reste
+  bornée même si un utilisateur envoie plusieurs requêtes en parallèle.
+- **Sans** : le solde est vérifié avant, et le crédit débité après une génération réussie,
+  avec la session de l'utilisateur (`spend_own_credit`, migration 0003).
 
-Le navigateur ne peut que lire `users.plan` et `credits.balance`. Le solde ne peut que
-baisser, par `consume_credit` (clé secrète) ou `spend_own_credit` (session de l'utilisateur).
+Le navigateur ne peut que lire `users.plan` et `credits.balance`, et le solde ne peut que
+baisser.
 
 ### Appels au modèle
 
 Chaque outil impose un format de sortie JSON (sorties structurées, schémas Zod de
 `src/lib/tools.ts`), ce qui permet à l'interface d'afficher des résultats riches : battements
 côte à côte, passages surlignés, frise de 7 jours. Les prompts sont dans
-`src/lib/ai/prompts.ts`. Le générateur gratuit reçoit le même schéma, converti en JSON Schema dans
-son prompt, et sa réponse est validée par Zod dans le navigateur.
+`src/lib/ai/prompts.ts`. Le générateur gratuit reçoit le même schéma, converti en JSON Schema
+dans son prompt ; sa réponse est validée par Zod et relancée si elle est mal formée.
 
 ## Déploiement
 

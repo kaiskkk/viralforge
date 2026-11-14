@@ -6,7 +6,7 @@ import { FREE_CREDITS } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 import type { Plan } from "@/types/database";
 
-/** Éléments communs aux routes /api/generate et /api/generate/commit. */
+/** Réponses d'erreur et session utilisées par la route /api/generate. */
 
 export type ErrorCode =
   | "unauthenticated"

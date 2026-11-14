@@ -1,14 +1,16 @@
+import "server-only";
+
 /**
- * Générateur gratuit, appelé depuis le navigateur du visiteur.
+ * Générateur gratuit, appelé depuis le serveur du site.
  *
- * Il utilise l'API publique de Pollinations (https://text.pollinations.ai) :
- * pas de clé, pas de compte, pas de coût. La limite de débit est appliquée par
- * adresse IP, c'est-à-dire à chaque visiteur séparément (une génération à la
- * fois, environ 30 secondes entre deux) : le site n'a pas de plafond global.
+ * Il utilise l'API publique « Classic » de Pollinations
+ * (https://github.com/pollinations/pollinations/blob/main/APIDOCS.md) : pas de
+ * clé, pas de compte, pas de coût. En contrepartie, elle est limitée par
+ * adresse IP (une génération à la fois, environ 30 secondes entre deux) et
+ * fournie « au mieux », sans garantie de disponibilité.
  *
- * Service gratuit « au mieux » : il peut être lent ou momentanément saturé.
- * Pour une qualité supérieure, renseigne ANTHROPIC_API_KEY sur le serveur :
- * les outils passent alors automatiquement par Claude.
+ * Quand la limite est atteinte, l'API répond 402 avec un en-tête Retry-After :
+ * on patiente le temps indiqué, dans la limite du temps d'exécution de la route.
  */
 
 import { z } from "zod";
@@ -17,17 +19,18 @@ import type { GenerateRequest, ToolOutputs } from "@/lib/tools";
 
 import { finalizeOutput, GenerationError, getToolSpec } from "./tool-specs";
 
-const ENDPOINT = process.env.NEXT_PUBLIC_FREE_AI_URL || "https://text.pollinations.ai/openai";
+const ENDPOINT = process.env.FREE_AI_URL?.trim() || "https://text.pollinations.ai/openai";
 const MODEL = "openai-fast";
 
 const MAX_ATTEMPTS = 3;
-const REQUEST_TIMEOUT_MS = 180_000;
-/** Attente maximale acceptée quand le service demande de patienter. */
-const MAX_WAIT_SECONDS = 90;
+/** Budget total, sous le maxDuration de la route (300 s). */
+const TOTAL_BUDGET_MS = 240_000;
+const REQUEST_TIMEOUT_MS = 150_000;
 const DEFAULT_WAIT_SECONDS = 30;
 
-export type FreeEngineErrorCode = "busy" | "network" | "refused" | "truncated" | "invalid_output";
+export type FreeEngineErrorCode = "busy" | "unavailable";
 
+/** Le générateur gratuit est saturé ou injoignable : réessayable plus tard. */
 export class FreeEngineError extends Error {
   constructor(
     readonly code: FreeEngineErrorCode,
@@ -37,12 +40,6 @@ export class FreeEngineError extends Error {
     this.name = "FreeEngineError";
   }
 }
-
-export type FreeEngineOptions = {
-  /** Appelé chaque seconde pendant une attente imposée (0 quand elle se termine). */
-  onWait?: (secondsLeft: number) => void;
-  signal?: AbortSignal;
-};
 
 /** Consigne de format ajoutée au prompt système : le modèle doit répondre en JSON. */
 function jsonInstructions(schema: z.ZodType): string {
@@ -67,33 +64,19 @@ function parseJsonObject(content: string): unknown {
   }
 }
 
-/** Délai demandé par l'en-tête Retry-After (secondes ou date HTTP). */
-function retryAfterSeconds(response: Response): number {
+/** Délai demandé par l'en-tête Retry-After (secondes ou date HTTP), en millisecondes. */
+function retryAfterMs(response: Response): number {
   const header = response.headers.get("retry-after");
-  if (!header) return DEFAULT_WAIT_SECONDS;
-  const seconds = Number(header);
-  const value = Number.isFinite(seconds) ? seconds : (Date.parse(header) - Date.now()) / 1000;
-  return Number.isFinite(value) ? Math.min(MAX_WAIT_SECONDS, Math.max(1, Math.ceil(value))) : DEFAULT_WAIT_SECONDS;
+  const seconds = header == null ? NaN : Number(header);
+  const value = Number.isFinite(seconds)
+    ? seconds
+    : header
+      ? (Date.parse(header) - Date.now()) / 1000
+      : DEFAULT_WAIT_SECONDS;
+  return Math.max(1, Math.ceil(Number.isFinite(value) ? value : DEFAULT_WAIT_SECONDS)) * 1000;
 }
 
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) return reject(signal.reason);
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => {
-      clearTimeout(timer);
-      reject(signal.reason);
-    });
-  });
-}
-
-async function countdown(seconds: number, options: FreeEngineOptions): Promise<void> {
-  for (let left = seconds; left > 0; left--) {
-    options.onWait?.(left);
-    await sleep(1000, options.signal);
-  }
-  options.onWait?.(0);
-}
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type ChatCompletion = {
   choices?: Array<{ finish_reason?: string | null; message?: { content?: string | null } }>;
@@ -103,20 +86,21 @@ type ChatCompletion = {
  * Lance l'outil demandé sur le générateur gratuit et renvoie un résultat
  * validé. Réessaie seul après une attente imposée ou une réponse mal formée.
  */
-export async function generateInBrowser<Tool extends GenerateRequest["tool"]>(
-  request: Extract<GenerateRequest, { tool: Tool }>,
-  options: FreeEngineOptions = {},
-): Promise<ToolOutputs[Tool]> {
+export async function generateWithFreeEngine(
+  request: GenerateRequest,
+): Promise<ToolOutputs[GenerateRequest["tool"]]> {
   const spec = getToolSpec(request);
   const messages = [
     { role: "system", content: `${spec.system}\n\n${jsonInstructions(spec.schema)}` },
     { role: "user", content: spec.user },
   ];
+  const deadline = Date.now() + TOTAL_BUDGET_MS;
 
-  let lastError = new FreeEngineError("busy", "Le générateur gratuit ne répond pas.");
+  let lastError: Error = new FreeEngineError("busy", "Le générateur gratuit est saturé.");
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const isLastAttempt = attempt === MAX_ATTEMPTS;
+    const remaining = deadline - Date.now();
+    if (remaining <= 5_000) break;
 
     let response: Response;
     try {
@@ -131,50 +115,52 @@ export async function generateInBrowser<Tool extends GenerateRequest["tool"]>(
           // requêtes identiques, et une relance doit donner un nouveau résultat.
           seed: Math.floor(Math.random() * 1_000_000_000),
         }),
-        signal: options.signal
-          ? AbortSignal.any([options.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
-          : AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(Math.min(REQUEST_TIMEOUT_MS, remaining)),
+        cache: "no-store",
       });
     } catch (error) {
-      if (options.signal?.aborted) throw error;
-      lastError = new FreeEngineError("network", "Connexion au générateur interrompue.");
-      if (isLastAttempt) throw lastError;
-      await sleep(3000, options.signal);
+      console.warn("[free-engine] requête impossible", error);
+      lastError = new FreeEngineError("unavailable", "Le générateur gratuit ne répond pas.");
+      await sleep(2_000);
       continue;
     }
 
-    // Limite par visiteur atteinte (402) ou service saturé (429, 5xx) : on patiente.
+    // Limite atteinte (402), service saturé (429) ou en panne (5xx) : on patiente.
     if (response.status === 402 || response.status === 429 || response.status >= 500) {
       lastError = new FreeEngineError("busy", "Le générateur gratuit est saturé.");
-      if (isLastAttempt) throw lastError;
-      await countdown(response.status >= 500 ? 5 : retryAfterSeconds(response), options);
+      const wait = response.status >= 500 ? 3_000 : retryAfterMs(response);
+      // Inutile d'attendre si l'essai suivant ne tiendrait plus dans le budget.
+      if (deadline - Date.now() - wait < 30_000) break;
+      await sleep(wait);
       continue;
     }
     if (!response.ok) {
-      throw new FreeEngineError("network", `Le générateur a répondu ${response.status}.`);
+      const detail = (await response.text().catch(() => "")).slice(0, 200);
+      throw new FreeEngineError("unavailable", `Le générateur a répondu ${response.status} : ${detail}`);
     }
 
     const body = (await response.json().catch(() => null)) as ChatCompletion | null;
     const choice = body?.choices?.[0];
     if (choice?.finish_reason === "content_filter") {
-      throw new FreeEngineError("refused", "Le générateur a refusé cette demande.");
+      throw new GenerationError("refused", "Le générateur a refusé cette demande.");
     }
 
     const parsed = spec.schema.safeParse(parseJsonObject(choice?.message?.content ?? ""));
     if (parsed.success) {
       try {
-        return finalizeOutput(request.tool as Tool, parsed.data as ToolOutputs[Tool]);
+        return finalizeOutput(request.tool, parsed.data as ToolOutputs[GenerateRequest["tool"]]);
       } catch (error) {
         if (!(error instanceof GenerationError)) throw error;
+        lastError = error;
+        continue;
       }
     }
 
-    // Réponse coupée ou mal formée : on relance (au prochain créneau libre).
+    // Réponse coupée ou mal formée : on relance.
     lastError =
       choice?.finish_reason === "length"
-        ? new FreeEngineError("truncated", "La réponse du générateur a été coupée.")
-        : new FreeEngineError("invalid_output", "La réponse du générateur était incomplète.");
-    if (isLastAttempt) throw lastError;
+        ? new GenerationError("truncated", "La réponse du générateur a été coupée.")
+        : new GenerationError("invalid_output", "La réponse du générateur était incomplète.");
   }
 
   throw lastError;
