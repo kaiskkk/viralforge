@@ -77,7 +77,7 @@ export function GenerateButton({
   );
 }
 
-function LoadingPanel({ steps }: { steps: string[] }) {
+function LoadingPanel({ steps, notice }: { steps: string[]; notice?: string }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -95,7 +95,7 @@ function LoadingPanel({ steps }: { steps: string[] }) {
         {steps[index]}
       </p>
       <p className="mt-1.5 text-[13px] text-muted">
-        Compte 20 à 60 secondes. Tu peux laisser cette page ouverte.
+        {notice ?? "Compte 30 secondes à 2 minutes. Garde cette page ouverte."}
       </p>
       <div className="mt-6 space-y-3" aria-hidden>
         {["w-full", "w-11/12", "w-4/5", "w-full", "w-2/3"].map((width, line) => (
@@ -157,7 +157,7 @@ export function ResultPanel<Result>({
     case "idle":
       return <EmptyPanel tool={tool} hint={emptyHint} />;
     case "loading":
-      return <LoadingPanel steps={loadingSteps} />;
+      return <LoadingPanel steps={loadingSteps} notice={state.notice} />;
     case "error":
       return <ErrorPanel code={state.code} message={state.message} />;
     case "success":

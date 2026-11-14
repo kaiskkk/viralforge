@@ -16,7 +16,7 @@ export function Footer() {
         <div>
           <Logo />
           <p className="mt-3 text-[13px] text-faint">
-            © {new Date().getFullYear()} ViralForge. Scripts générés avec Claude.
+            © {new Date().getFullYear()} ViralForge. Scripts générés par IA.
           </p>
         </div>
         <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Pied de page">

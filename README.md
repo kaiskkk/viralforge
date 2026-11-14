@@ -3,12 +3,13 @@
 SaaS d'écriture de scripts pour vidéos courtes (TikTok, Reels, Shorts).
 
 - **Landing** dark mode avec simulateur de score viral gratuit (analyse locale, sans appel d'API).
-- **Dashboard** avec trois outils branchés sur Claude via `POST /api/generate` :
+- **Dashboard** avec trois outils d'IA, gratuits et sans clé par défaut :
   Cloneur de Structure Virale, Anti-Dropoff, Générateur de Série 7 jours.
 - **Comptes et données** sur Supabase (Auth + Postgres avec RLS).
 - **Plans** : `free` (3 crédits offerts) et `pro` (illimité), activé par le webhook de paiement Whop.
 
-Stack : Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide, Supabase, SDK Anthropic, Zod.
+Stack : Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide, Supabase, Zod. IA : Pollinations
+(gratuit) ou Claude (SDK Anthropic, optionnel).
 
 ## Démarrage
 
@@ -32,12 +33,14 @@ outils demandent la configuration ci-dessous.
 ### 1. Supabase
 
 1. Crée un projet sur [supabase.com](https://supabase.com).
-2. **SQL Editor** : colle et exécute `supabase/migrations/0001_init.sql`, puis
-   `0002_pending_upgrades.sql`. Le premier crée les tables `users`, `credits`,
-   `saved_scripts`, les règles RLS, le trigger qui offre 3 crédits à l'inscription et les
-   fonctions `consume_credit` / `refund_credit`. Le second ajoute les plans Pro en attente
-   (paiement reçu avant la création du compte).
+2. **SQL Editor** : colle et exécute, dans l'ordre, les fichiers de `supabase/migrations/` :
+   - `0001_init.sql` : tables `users`, `credits`, `saved_scripts`, règles RLS, trigger qui
+     offre 3 crédits à l'inscription, fonctions `consume_credit` / `refund_credit` ;
+   - `0002_pending_upgrades.sql` : plans Pro en attente (paiement reçu avant l'inscription) ;
+   - `0003_self_serve_credits.sql` : débit des crédits sans clé secrète. Sans ce fichier ni
+     la clé secrète, les générations fonctionnent mais ne sont pas décomptées.
 3. **Project Settings → API Keys** : copie la clé secrète dans `SUPABASE_SERVICE_ROLE_KEY`.
+   Elle est indispensable au webhook de paiement ; les outils s'en passent.
    L'URL du projet et la clé « publishable » sont publiques : elles ont une valeur par
    défaut dans `src/lib/supabase/config.ts`. `NEXT_PUBLIC_SUPABASE_URL` et
    `NEXT_PUBLIC_SUPABASE_ANON_KEY` ne servent qu'à viser un autre projet ; une valeur mal
@@ -52,15 +55,24 @@ outils demandent la configuration ci-dessous.
 La confirmation par e-mail est gérée : si elle est activée, l'utilisateur reçoit un lien qui
 revient sur `/auth/callback`.
 
-### 2. Anthropic
+### 2. IA
 
-Crée une clé sur [platform.claude.com](https://platform.claude.com/settings/keys) et renseigne
-`ANTHROPIC_API_KEY`. L'API est facturée à l'usage : les nouveaux comptes reçoivent un crédit
-d'essai, puis le crédit s'achète sur la page Billing.
+**Par défaut, rien à configurer.** Les outils utilisent l'API publique de
+[Pollinations](https://github.com/pollinations/pollinations/blob/main/APIDOCS.md) (modèle
+GPT-OSS 20B) : gratuite, sans clé ni compte. Elle est appelée **depuis le navigateur du
+visiteur** (`src/lib/ai/free-engine.ts`), si bien que sa limite de débit (une génération à
+la fois, environ 30 secondes entre deux) s'applique à chaque visiteur séparément : le site
+n'a ni facture ni plafond global. Quand la limite est atteinte, l'interface affiche un compte
+à rebours et relance seule.
 
-Le modèle par défaut est `claude-haiku-5-5` (0,10 $ / 0,50 $ par million de tokens en entrée /
-sortie, soit moins d'un centime par génération). Pour privilégier la qualité d'écriture,
-renseigne `ANTHROPIC_MODEL=claude-sonnet-5-5` (2 $ / 10 $, environ vingt fois plus cher).
+C'est un service gratuit « au mieux » : pas de garantie de disponibilité, et ses conditions
+peuvent changer.
+
+**Option : Claude.** Pour une meilleure qualité d'écriture, crée une clé sur
+[platform.claude.com](https://platform.claude.com/settings/keys) et renseigne
+`ANTHROPIC_API_KEY` : les générations passent alors par le serveur, avec Claude Haiku 5.5
+(moins d'un centime par génération, facturé à l'usage). `ANTHROPIC_MODEL=claude-sonnet-5-5`
+privilégie encore la qualité, pour environ vingt fois plus cher.
 
 ### 3. Paiement
 
@@ -109,7 +121,7 @@ src/
 │   ├── auth/                       Callback e-mail, déconnexion
 │   ├── dashboard/                  Vue d'ensemble, 3 outils, scripts sauvegardés
 │   └── api/
-│       ├── generate/               Appel à Claude + gestion des crédits
+│       ├── generate/               Vérification des crédits, génération Claude, décompte
 │       └── webhooks/               Passage free ↔ pro (whop, lemonsqueezy)
 ├── components/
 │   ├── ui/                         Bouton, champs, carte, logo
@@ -117,7 +129,7 @@ src/
 │   └── dashboard/                  Sidebar, formulaires et résultats des outils
 ├── lib/
 │   ├── supabase/                   Clients navigateur, serveur, admin, middleware
-│   ├── anthropic/                  Client, prompts, génération structurée
+│   ├── ai/                         Prompts, générateur gratuit (navigateur), Claude (serveur)
 │   ├── tools.ts                    Schémas Zod d'entrée et de sortie des 3 outils
 │   ├── viral-score.ts              Moteur du simulateur
 │   ├── credits.ts · plans.ts · auth.ts · utils.ts
@@ -126,19 +138,25 @@ src/
 
 ### Crédits
 
-`/api/generate` réserve un crédit **avant** d'appeler le modèle, par un `UPDATE` SQL atomique,
-et le rembourse si la génération échoue. La dépense d'API reste bornée même si un utilisateur
-envoie plusieurs requêtes en parallèle. En `pro`, aucun crédit n'est consommé.
+Une génération qui échoue ne coûte jamais de crédit. En `pro`, aucun crédit n'est consommé.
 
-Le navigateur ne peut que lire `users.plan` et `credits.balance` : ils ne sont modifiés que
-côté serveur avec la clé `service_role`.
+- **Générateur gratuit** : `/api/generate` vérifie le solde, le navigateur génère, puis
+  `/api/generate/commit` débite le crédit. L'IA ne coûtant rien, ce décompte sert à
+  distinguer les plans, pas à protéger une dépense.
+- **Claude** : avec la clé secrète, le crédit est réservé **avant** l'appel au modèle par un
+  `UPDATE` SQL atomique, et rendu si la génération échoue ; la dépense d'API reste bornée
+  même avec des requêtes en parallèle.
 
-### Appels à Claude
+Le navigateur ne peut que lire `users.plan` et `credits.balance`. Le solde ne peut que
+baisser, par `consume_credit` (clé secrète) ou `spend_own_credit` (session de l'utilisateur).
+
+### Appels au modèle
 
 Chaque outil impose un format de sortie JSON (sorties structurées, schémas Zod de
 `src/lib/tools.ts`), ce qui permet à l'interface d'afficher des résultats riches : battements
 côte à côte, passages surlignés, frise de 7 jours. Les prompts sont dans
-`src/lib/anthropic/prompts.ts`.
+`src/lib/ai/prompts.ts`. Le générateur gratuit reçoit le même schéma, converti en JSON Schema dans
+son prompt, et sa réponse est validée par Zod dans le navigateur.
 
 ## Déploiement
 

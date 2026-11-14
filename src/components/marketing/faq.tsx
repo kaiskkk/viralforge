@@ -20,7 +20,7 @@ const QUESTIONS = [
   {
     question: "Quelle IA écrit les scripts ?",
     answer:
-      "Les trois outils s'appuient sur Claude, le modèle d'Anthropic. Il n'invente pas de chiffres : quand une preuve est nécessaire, il laisse un emplacement à compléter avec tes propres données.",
+      "Un modèle de langage, encadré par des consignes écrites pour la vidéo courte. Elles lui interdisent d'inventer des chiffres : quand une preuve est nécessaire, il laisse un emplacement à compléter avec tes propres données.",
   },
   {
     question: "Puis-je annuler le plan Pro ?",

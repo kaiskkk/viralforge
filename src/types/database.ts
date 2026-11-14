@@ -125,6 +125,10 @@ export type Database = {
         Args: { p_user_id: string };
         Returns: number | null;
       };
+      spend_own_credit: {
+        Args: Record<string, never>;
+        Returns: number | null;
+      };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
