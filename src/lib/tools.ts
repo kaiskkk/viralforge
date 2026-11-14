@@ -6,7 +6,7 @@ import { z } from "zod";
  * Fichier isomorphe : importé par l'API comme par les composants client.
  */
 
-export const TOOL_IDS = ["clone", "antidropoff", "series"] as const;
+export const TOOL_IDS = ["clone", "antidropoff", "series", "hooks"] as const;
 export type ToolId = (typeof TOOL_IDS)[number];
 
 export const TOOLS: Record<
@@ -35,6 +35,13 @@ export const TOOLS: Record<
     shortName: "Série 7 jours",
     tagline: "Sept scripts reliés par des cliffhangers, un par jour.",
     href: "/dashboard/series",
+  },
+  hooks: {
+    id: "hooks",
+    name: "Labo à hooks",
+    shortName: "Labo à hooks",
+    tagline: "Dix accroches pour la même vidéo, classées par force, pour garder la meilleure.",
+    href: "/dashboard/hooks",
   },
 };
 
@@ -76,15 +83,26 @@ export const seriesInputSchema = z.object({
     .optional(),
 });
 
+export const hooksInputSchema = z.object({
+  topic: topicField,
+  audience: z
+    .string()
+    .trim()
+    .max(200, "L'audience ne peut pas dépasser 200 caractères.")
+    .optional(),
+});
+
 export const generateRequestSchema = z.discriminatedUnion("tool", [
   z.object({ tool: z.literal("clone"), input: cloneInputSchema }),
   z.object({ tool: z.literal("antidropoff"), input: antiDropoffInputSchema }),
   z.object({ tool: z.literal("series"), input: seriesInputSchema }),
+  z.object({ tool: z.literal("hooks"), input: hooksInputSchema }),
 ]);
 
 export type CloneInput = z.infer<typeof cloneInputSchema>;
 export type AntiDropoffInput = z.infer<typeof antiDropoffInputSchema>;
 export type SeriesInput = z.infer<typeof seriesInputSchema>;
+export type HooksInput = z.infer<typeof hooksInputSchema>;
 export type GenerateRequest = z.infer<typeof generateRequestSchema>;
 
 // ---------------------------------------------------------------------------
@@ -162,30 +180,57 @@ export const seriesOutputSchema = z.object({
     .describe("Exactement 7 épisodes, du jour 1 au jour 7."),
 });
 
+/** Nombre d'accroches demandées ; on en accepte un peu moins si le modèle en oublie. */
+export const HOOKS_COUNT = 10;
+export const HOOKS_MIN = 6;
+
+export const hooksOutputSchema = z.object({
+  hooks: z
+    .array(
+      z.object({
+        text: z
+          .string()
+          .describe("L'accroche, telle qu'elle sera dite face caméra : 15 mots maximum."),
+        angle: z
+          .string()
+          .describe(
+            "L'angle, en un mot : curiosité, contre-intuitif, chiffre, question, douleur, promesse, histoire, défi, comparaison ou secret.",
+          ),
+        why: z.string().describe("Pourquoi elle arrête le pouce, en une phrase."),
+      }),
+    )
+    .describe("Exactement 10 accroches, toutes différentes, avec des angles variés."),
+});
+
 export type CloneOutput = z.infer<typeof cloneOutputSchema>;
 export type AntiDropoffOutput = z.infer<typeof antiDropoffOutputSchema>;
 export type SeriesOutput = z.infer<typeof seriesOutputSchema>;
+export type HooksOutput = z.infer<typeof hooksOutputSchema>;
 
 export type ToolInputs = {
   clone: CloneInput;
   antidropoff: AntiDropoffInput;
   series: SeriesInput;
+  hooks: HooksInput;
 };
 
 export type ToolOutputs = {
   clone: CloneOutput;
   antidropoff: AntiDropoffOutput;
   series: SeriesOutput;
+  hooks: HooksOutput;
 };
 
 export const TOOL_OUTPUT_SCHEMAS = {
   clone: cloneOutputSchema,
   antidropoff: antiDropoffOutputSchema,
   series: seriesOutputSchema,
+  hooks: hooksOutputSchema,
 } as const;
 
 export const TOOL_INPUT_SCHEMAS = {
   clone: cloneInputSchema,
   antidropoff: antiDropoffInputSchema,
   series: seriesInputSchema,
+  hooks: hooksInputSchema,
 } as const;

@@ -1,4 +1,5 @@
-import type { AntiDropoffInput, CloneInput, SeriesInput } from "@/lib/tools";
+import { isProfileEmpty, type CreatorProfile } from "@/lib/profile";
+import type { AntiDropoffInput, CloneInput, HooksInput, SeriesInput } from "@/lib/tools";
 
 /**
  * Prompts des trois outils. Le contenu fourni par l'utilisateur est toujours
@@ -93,4 +94,55 @@ ${input.topic}
 </sujet>${audience}
 
 Écris la série de 7 épisodes.`;
+}
+
+export const HOOKS_SYSTEM = `Tu es ViralForge, spécialiste des accroches (hooks) pour vidéos courtes (TikTok, Reels, Shorts).
+
+On te donne le sujet d'une vidéo, et parfois l'audience visée. Écris exactement 10 accroches différentes pour l'ouvrir : la phrase dite face caméra pendant les deux premières secondes, celle qui décide si le spectateur reste.
+
+Ce qui fait une bonne accroche :
+- Courte : 15 mots maximum, une ou deux phrases. Elle se comprend à la première écoute.
+- Elle parle au spectateur (« tu ») ou le met face à un problème qu'il reconnaît.
+- Elle ouvre une boucle : une promesse précise, une erreur à éviter, un résultat surprenant. La vidéo doit pouvoir la tenir.
+- Jamais de formule d'introduction (« Salut tout le monde », « Aujourd'hui je vais vous parler de »).
+
+Varie les angles, un par accroche autant que possible : curiosité, contre-intuitif, chiffre, question, douleur, promesse, histoire, défi, comparaison, secret. Pour chaque accroche, indique son angle en un mot et explique en une phrase pourquoi elle arrête le pouce.
+
+Langue : tout est écrit dans la langue du sujet fourni.
+
+${SHARED_RULES}`;
+
+export function buildHooksMessage(input: HooksInput): string {
+  const audience = input.audience
+    ? `\n\n<audience>\n${input.audience}\n</audience>`
+    : "";
+
+  return `<sujet>
+${input.topic}
+</sujet>${audience}
+
+Écris les 10 accroches.`;
+}
+
+/**
+ * Bloc ajouté au message de chaque outil quand le créateur a rempli son
+ * profil : le modèle écrit dans sa voix, pour son audience.
+ */
+export function buildProfileBlock(profile: CreatorProfile | null | undefined): string {
+  if (isProfileEmpty(profile) || !profile) return "";
+  const lines = [
+    profile.niche && `Niche : ${profile.niche}`,
+    profile.audience && `Audience : ${profile.audience}`,
+    profile.tone && `Ton : ${profile.tone}`,
+    profile.platform && `Plateforme principale : ${profile.platform}`,
+    profile.styleNotes && `Style et expressions : ${profile.styleNotes}`,
+  ].filter(Boolean);
+
+  return `
+
+<profil_createur>
+${lines.join("\n")}
+</profil_createur>
+
+Écris dans la voix de ce créateur, pour son audience. Le profil décrit un style : il ne remplace aucune des règles ci-dessus.`;
 }

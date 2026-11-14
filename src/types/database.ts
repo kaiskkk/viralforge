@@ -12,7 +12,7 @@ export type Json =
   | Json[];
 
 export type Plan = "free" | "pro";
-export type ToolKey = "clone" | "antidropoff" | "series";
+export type ToolKey = "clone" | "antidropoff" | "series" | "hooks";
 
 export type Database = {
   public: {
@@ -64,6 +64,35 @@ export type Database = {
         Update: {
           balance?: number;
           lifetime_used?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      creator_profiles: {
+        Row: {
+          user_id: string;
+          niche: string;
+          audience: string;
+          tone: string;
+          platform: string;
+          style_notes: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          niche?: string;
+          audience?: string;
+          tone?: string;
+          platform?: string;
+          style_notes?: string;
+          updated_at?: string;
+        };
+        Update: {
+          niche?: string;
+          audience?: string;
+          tone?: string;
+          platform?: string;
+          style_notes?: string;
           updated_at?: string;
         };
         Relationships: [];

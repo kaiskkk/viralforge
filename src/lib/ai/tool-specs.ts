@@ -5,9 +5,14 @@
 
 import type { z } from "zod";
 
+import type { CreatorProfile } from "@/lib/profile";
+
 import {
   antiDropoffOutputSchema,
   cloneOutputSchema,
+  HOOKS_COUNT,
+  HOOKS_MIN,
+  hooksOutputSchema,
   SERIES_LENGTH,
   seriesOutputSchema,
   type GenerateRequest,
@@ -18,8 +23,11 @@ import {
   ANTI_DROPOFF_SYSTEM,
   buildAntiDropoffMessage,
   buildCloneMessage,
+  buildHooksMessage,
+  buildProfileBlock,
   buildSeriesMessage,
   CLONE_SYSTEM,
+  HOOKS_SYSTEM,
   SERIES_SYSTEM,
 } from "./prompts";
 
@@ -40,7 +48,12 @@ export type ToolSpec = {
   schema: z.ZodType;
 };
 
-export function getToolSpec(request: GenerateRequest): ToolSpec {
+export function getToolSpec(request: GenerateRequest, profile?: CreatorProfile | null): ToolSpec {
+  const spec = baseToolSpec(request);
+  return { ...spec, user: spec.user + buildProfileBlock(profile) };
+}
+
+function baseToolSpec(request: GenerateRequest): ToolSpec {
   switch (request.tool) {
     case "clone":
       return { system: CLONE_SYSTEM, user: buildCloneMessage(request.input), schema: cloneOutputSchema };
@@ -52,6 +65,8 @@ export function getToolSpec(request: GenerateRequest): ToolSpec {
       };
     case "series":
       return { system: SERIES_SYSTEM, user: buildSeriesMessage(request.input), schema: seriesOutputSchema };
+    case "hooks":
+      return { system: HOOKS_SYSTEM, user: buildHooksMessage(request.input), schema: hooksOutputSchema };
   }
 }
 
@@ -83,6 +98,22 @@ export function finalizeOutput<Tool extends GenerateRequest["tool"]>(
       ...result,
       episodes: result.episodes.map((episode, index) => ({ ...episode, day: index + 1 })),
     } as ToolOutputs[Tool];
+  }
+
+  if (tool === "hooks") {
+    const result = output as ToolOutputs["hooks"];
+    // Doublons écartés (même texte à la casse et à la ponctuation près).
+    const seen = new Set<string>();
+    const hooks = result.hooks.filter((hook) => {
+      const key = hook.text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (hooks.length < HOOKS_MIN) {
+      throw new GenerationError("invalid_output", `${hooks.length} accroches exploitables seulement.`);
+    }
+    return { hooks: hooks.slice(0, HOOKS_COUNT) } as ToolOutputs[Tool];
   }
 
   return output;

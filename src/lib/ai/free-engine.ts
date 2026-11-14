@@ -15,6 +15,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import type { CreatorProfile } from "@/lib/profile";
 import type { GenerateRequest, ToolOutputs } from "@/lib/tools";
 
 import { finalizeOutput, GenerationError, getToolSpec } from "./tool-specs";
@@ -96,8 +97,9 @@ type ChatCompletion = {
  */
 export async function generateWithFreeEngine(
   request: GenerateRequest,
+  profile?: CreatorProfile | null,
 ): Promise<ToolOutputs[GenerateRequest["tool"]]> {
-  const spec = getToolSpec(request);
+  const spec = getToolSpec(request, profile);
   const messages = [
     { role: "system", content: `${spec.system}\n\n${jsonInstructions(spec.schema)}` },
     { role: "user", content: spec.user },

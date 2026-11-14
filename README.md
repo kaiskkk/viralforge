@@ -3,8 +3,16 @@
 SaaS d'écriture de scripts pour vidéos courtes (TikTok, Reels, Shorts).
 
 - **Landing** dark mode avec simulateur de score viral gratuit (analyse locale, sans appel d'API).
-- **Dashboard** avec trois outils d'IA, gratuits et sans clé par défaut :
-  Cloneur de Structure Virale, Anti-Dropoff, Générateur de Série 7 jours.
+- **Dashboard** avec quatre outils d'écriture, gratuits et sans clé par défaut : Cloneur de
+  Structure Virale, Anti-Dropoff, Générateur de Série 7 jours et Labo à hooks (10 accroches
+  classées par le moteur du simulateur).
+- **Profil créateur** (niche, audience, ton, plateforme, style) injecté dans les prompts de
+  tous les outils.
+- **Studio** : téléprompteur plein écran par-dessus la caméra, avec enregistrement vidéo dans
+  le navigateur (MediaRecorder). Rien n'est envoyé au serveur.
+- **Application installable** (manifeste, icônes, plein écran sur iPhone) et navigation par
+  onglets en bas d'écran sur téléphone.
+- **Carte de score à partager** depuis le simulateur (image générée dans le navigateur).
 - **Comptes et données** sur Supabase (Auth + Postgres avec RLS).
 - **Plans** : `free` (3 crédits offerts) et `pro` (illimité), activé par le webhook de paiement Whop.
 
@@ -39,7 +47,8 @@ outils demandent la configuration ci-dessous.
    - `0002_pending_upgrades.sql` : plans Pro en attente (paiement reçu avant l'inscription) ;
    - `0003_self_serve_credits.sql` : débit des crédits sans clé secrète. Sans ce fichier ni
      la clé secrète, les générations fonctionnent mais ne sont pas décomptées ;
-   - `0004_whop_webhook.sql` : traitement des paiements Whop dans la base (voir Paiement).
+   - `0004_whop_webhook.sql` : traitement des paiements Whop dans la base (voir Paiement) ;
+   - `0005_hooks_and_profiles.sql` : sauvegarde des accroches et profils créateurs.
 3. **Clé secrète (optionnelle)** : `SUPABASE_SERVICE_ROLE_KEY` permet de réserver le crédit
    avant la génération et sert au webhook LemonSqueezy. Ni les outils ni Whop n'en ont besoin.
    L'URL du projet et la clé « publishable » sont publiques : elles ont une valeur par
@@ -134,10 +143,12 @@ src/
 ├── components/
 │   ├── ui/                         Bouton, champs, carte, logo
 │   ├── marketing/                  Sections de la landing, simulateur
-│   └── dashboard/                  Sidebar, formulaires et résultats des outils
+│   └── dashboard/                  Navigation, outils, résultats, profil, studio/
 ├── lib/
 │   ├── supabase/                   Clients navigateur, serveur, admin, middleware
 │   ├── ai/                         Prompts, générateur gratuit, Claude
+│   ├── profile.ts · studio.ts      Profil créateur, passage d'un script vers le Studio
+│   ├── score-card.ts               Image de score à partager
 │   ├── tools.ts                    Schémas Zod d'entrée et de sortie des 3 outils
 │   ├── viral-score.ts              Moteur du simulateur
 │   ├── credits.ts · plans.ts · auth.ts · utils.ts

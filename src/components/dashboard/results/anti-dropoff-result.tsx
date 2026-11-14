@@ -2,10 +2,12 @@
 
 import { useRef, useState } from "react";
 
+import { ShootButton } from "@/components/dashboard/shoot-button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import type { AntiDropoffOutput, SegmentStatus } from "@/lib/tools";
 import { cn } from "@/lib/utils";
+import { formatDuration, speakingSeconds } from "@/lib/viral-score";
 
 const STATUS = {
   strong: { label: "Retient", badge: "", highlight: "" },
@@ -161,11 +163,12 @@ export function AntiDropoffResult({
       {/* Version finale */}
       <Card>
         <CardHeader
-          eyebrow="Version réécrite"
+          eyebrow={`Version réécrite · ≈ ${formatDuration(speakingSeconds(output.improvedScript))} à l'oral`}
           title="Le script complet, réécritures intégrées"
           actions={
             <>
               <CopyButton text={output.improvedScript} />
+              <ShootButton script={output.improvedScript} title="Script réécrit" />
               {actions}
             </>
           }

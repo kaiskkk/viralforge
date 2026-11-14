@@ -37,7 +37,7 @@ export default function LandingPage() {
           aria-hidden
         />
 
-        <div className="relative mx-auto max-w-6xl px-5 pb-24 pt-20 sm:pt-28">
+        <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-14 sm:pb-24 sm:pt-28">
           <div className="mx-auto max-w-3xl text-center">
             <Link
               href="/signup"
@@ -90,7 +90,7 @@ export default function LandingPage() {
       <ToolsShowcase />
 
       {/* Fonctionnement */}
-      <section className="border-y border-white/[0.06] bg-white/[0.012] py-24">
+      <section className="border-y border-white/[0.06] bg-white/[0.012] py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-5">
           <h2 className="text-3xl font-semibold tracking-tightest sm:text-[40px]">
             <span className="text-gradient">Du brouillon au script qui tient.</span>
@@ -113,7 +113,7 @@ export default function LandingPage() {
       </section>
 
       {/* Tarifs */}
-      <section className="py-24">
+      <section className="py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-5">
           <div className="mx-auto max-w-xl text-center">
             <h2 className="text-3xl font-semibold tracking-tightest sm:text-[40px]">
@@ -138,7 +138,7 @@ export default function LandingPage() {
       </div>
 
       {/* Appel final */}
-      <section className="relative overflow-hidden border-t border-white/[0.06] py-28">
+      <section className="relative overflow-hidden border-t border-white/[0.06] py-20 sm:py-28">
         <div
           className="pointer-events-none absolute bottom-[-320px] left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-accent/[0.12] blur-[130px]"
           aria-hidden

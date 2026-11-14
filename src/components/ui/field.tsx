@@ -1,12 +1,24 @@
-import type { InputHTMLAttributes, LabelHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type {
+  HTMLAttributes,
+  InputHTMLAttributes,
+  LabelHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 
 import { cn } from "@/lib/utils";
 
 const CONTROL =
   "w-full rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm text-fg placeholder:text-faint transition-colors hover:border-white/[0.14] focus:border-accent/60 focus:outline-none focus:ring-2 focus:ring-accent/20";
 
+const LABEL = "mb-2 block text-[13px] font-medium text-fg";
+
 export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn("mb-2 block text-[13px] font-medium text-fg", className)} {...props} />;
+  return <label className={cn(LABEL, className)} {...props} />;
+}
+
+/** Titre d'un groupe de boutons, qui n'a pas de champ associé. */
+export function FieldTitle({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cn(LABEL, className)} {...props} />;
 }
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {

@@ -1,9 +1,11 @@
 import { ArrowDown } from "lucide-react";
 
+import { ShootButton } from "@/components/dashboard/shoot-button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import type { CloneOutput } from "@/lib/tools";
 import { cn } from "@/lib/utils";
+import { formatDuration, speakingSeconds } from "@/lib/viral-score";
 
 const BEAT_COLORS = [
   "bg-accent",
@@ -26,11 +28,12 @@ export function CloneResult({
     <div className="space-y-5">
       <Card>
         <CardHeader
-          eyebrow="Nouveau script"
+          eyebrow={`Nouveau script · ≈ ${formatDuration(speakingSeconds(output.script))} à l'oral`}
           title={output.title}
           actions={
             <>
               <CopyButton text={output.script} />
+              <ShootButton script={output.script} title={output.title} />
               {actions}
             </>
           }

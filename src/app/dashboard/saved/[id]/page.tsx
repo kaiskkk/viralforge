@@ -7,11 +7,13 @@ import { z } from "zod";
 import { DeleteScriptButton } from "@/components/dashboard/delete-script-button";
 import { AntiDropoffResult } from "@/components/dashboard/results/anti-dropoff-result";
 import { CloneResult } from "@/components/dashboard/results/clone-result";
+import { HooksResult } from "@/components/dashboard/results/hooks-result";
 import { SeriesResult } from "@/components/dashboard/results/series-result";
 import { createClient } from "@/lib/supabase/server";
 import {
   antiDropoffOutputSchema,
   cloneOutputSchema,
+  hooksOutputSchema,
   seriesOutputSchema,
   TOOLS,
   type ToolId,
@@ -38,6 +40,10 @@ function renderSavedResult(tool: ToolId, output: Json): React.ReactNode {
     case "series": {
       const parsed = seriesOutputSchema.safeParse(output);
       return parsed.success ? <SeriesResult output={parsed.data} /> : null;
+    }
+    case "hooks": {
+      const parsed = hooksOutputSchema.safeParse(output);
+      return parsed.success ? <HooksResult output={parsed.data} /> : null;
     }
   }
 }

@@ -4,6 +4,7 @@ import { ArrowRight, Lightbulb, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { ShareScoreButton } from "@/components/marketing/share-score-button";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FREE_CREDITS } from "@/lib/plans";
 import { cn } from "@/lib/utils";
@@ -147,7 +148,7 @@ export function ViralSimulator() {
 
   return (
     <div className="hairline overflow-hidden rounded-2xl bg-surface/80 shadow-[0_40px_120px_-40px_rgb(var(--accent)/0.25)] backdrop-blur">
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-white/[0.06] px-5 py-3">
         <div className="flex items-center gap-2 text-[13px] font-medium">
           <Sparkles className="size-3.5 text-accent" aria-hidden />
           Simulateur de score viral
@@ -242,6 +243,9 @@ export function ViralSimulator() {
                 Réécrire ce script avec l&apos;IA
                 <ArrowRight className="size-4" aria-hidden />
               </Link>
+              <div className="mt-2.5">
+                <ShareScoreButton result={result} />
+              </div>
               <p className="mt-2.5 text-center text-xs text-faint">
                 {FREE_CREDITS} crédits offerts à l&apos;inscription, sans carte bancaire.
               </p>

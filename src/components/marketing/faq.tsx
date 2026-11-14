@@ -10,7 +10,12 @@ const QUESTIONS = [
   },
   {
     question: "Qu'est-ce qu'un crédit ?",
-    answer: `Un crédit correspond à une génération : un clonage de structure, une analyse Anti-Dropoff ou une série complète de 7 scripts. Tu reçois ${FREE_CREDITS} crédits à l'inscription. Si une génération échoue, le crédit t'est rendu.`,
+    answer: `Un crédit correspond à une génération : un clonage de structure, une analyse Anti-Dropoff, une série complète de 7 scripts ou dix accroches. Tu reçois ${FREE_CREDITS} crédits à l'inscription. Une génération qui échoue ne coûte rien. Le Studio, lui, est illimité.`,
+  },
+  {
+    question: "Le Studio envoie-t-il mes vidéos quelque part ?",
+    answer:
+      "Non. Le téléprompteur et l'enregistrement fonctionnent dans ton navigateur : la vidéo reste sur ton appareil jusqu'à ce que tu la télécharges ou la partages. Rien n'est envoyé sur nos serveurs.",
   },
   {
     question: "Le Cloneur copie-t-il le script d'origine ?",
@@ -31,7 +36,7 @@ const QUESTIONS = [
 
 export function Faq() {
   return (
-    <section className="py-24">
+    <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-3xl px-5">
         <h2 className="text-center text-3xl font-semibold tracking-tightest sm:text-[40px]">
           <span className="text-gradient">Questions fréquentes</span>

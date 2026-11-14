@@ -9,10 +9,13 @@ export function CopyButton({
   text,
   label = "Copier",
   className,
+  compact = false,
 }: {
   text: string;
   label?: string;
   className?: string;
+  /** Icône seule (le libellé reste lu par les lecteurs d'écran). */
+  compact?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -35,14 +38,20 @@ export function CopyButton({
     <button
       type="button"
       onClick={copy}
-      className={buttonClasses({ variant: "secondary", size: "sm", className })}
+      className={buttonClasses({
+        variant: "secondary",
+        size: "sm",
+        className: compact ? `size-8 shrink-0 px-0 ${className ?? ""}` : className,
+      })}
     >
       {copied ? (
         <Check className="size-3.5 text-accent" aria-hidden />
       ) : (
         <Copy className="size-3.5" aria-hidden />
       )}
-      <span aria-live="polite">{copied ? "Copié" : label}</span>
+      <span aria-live="polite" className={compact ? "sr-only" : undefined}>
+        {copied ? "Copié" : label}
+      </span>
     </button>
   );
 }

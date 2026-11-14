@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { creatorProfileSchema, type CreatorProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import {
   antiDropoffInputSchema,
   antiDropoffOutputSchema,
   cloneInputSchema,
   cloneOutputSchema,
+  hooksInputSchema,
+  hooksOutputSchema,
   seriesInputSchema,
   seriesOutputSchema,
 } from "@/lib/tools";
@@ -27,6 +30,7 @@ const saveSchema = z.discriminatedUnion("tool", [
     output: antiDropoffOutputSchema,
   }),
   z.object({ tool: z.literal("series"), title, input: seriesInputSchema, output: seriesOutputSchema }),
+  z.object({ tool: z.literal("hooks"), title, input: hooksInputSchema, output: hooksOutputSchema }),
 ]);
 
 export type SaveScriptPayload = z.input<typeof saveSchema>;
@@ -80,4 +84,35 @@ export async function deleteScript(id: string): Promise<ActionResult> {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/saved");
   return { ok: true };
+}
+
+export async function saveProfile(
+  profile: CreatorProfile,
+): Promise<{ ok: true; profile: CreatorProfile } | { ok: false; error: string }> {
+  const parsed = creatorProfileSchema.safeParse(profile);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Profil invalide." };
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Session expirée. Reconnecte-toi." };
+
+  const { niche, audience, tone, platform, styleNotes } = parsed.data;
+  const { error } = await supabase.from("creator_profiles").upsert({
+    user_id: user.id,
+    niche,
+    audience,
+    tone,
+    platform,
+    style_notes: styleNotes,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) {
+    console.error("[saveProfile]", error);
+    return { ok: false, error: "Enregistrement impossible. Réessaie." };
+  }
+
+  revalidatePath("/dashboard", "layout");
+  return { ok: true, profile: parsed.data };
 }

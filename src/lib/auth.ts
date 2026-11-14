@@ -3,6 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
+import { profileFromRow, type CreatorProfile } from "@/lib/profile";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { Plan } from "@/types/database";
@@ -12,6 +13,8 @@ export type Viewer = {
   email: string;
   plan: Plan;
   credits: number;
+  /** Profil créateur, ou null s'il n'a jamais été enregistré. */
+  profile: CreatorProfile | null;
 };
 
 /**
@@ -27,9 +30,14 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [profile, credits] = await Promise.all([
+  const [profile, credits, creator] = await Promise.all([
     supabase.from("users").select("plan").eq("id", user.id).maybeSingle(),
     supabase.from("credits").select("balance").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("creator_profiles")
+      .select("niche, audience, tone, platform, style_notes")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   return {
@@ -37,6 +45,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     email: user.email ?? "",
     plan: profile.data?.plan === "pro" ? "pro" : "free",
     credits: credits.data?.balance ?? 0,
+    profile: creator.data ? profileFromRow(creator.data) : null,
   };
 });
 

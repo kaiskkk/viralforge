@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { FreeEngineError, GenerationError, runTool } from "@/lib/ai/generate";
 import { CreditsSetupError, debitCredit, hasServiceRole, readBalance, refundCredit } from "@/lib/credits";
 import { creditsUnavailable, fail, getSessionUser, noCredits } from "@/lib/generate-api";
+import { profileFromRow } from "@/lib/profile";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { generateRequestSchema } from "@/lib/tools";
 
@@ -62,10 +63,17 @@ export async function POST(request: Request) {
     if (credits === null || (!reserveFirst && credits <= 0)) return noCredits();
   }
 
-  // 4. Génération
+  // 4. Génération, dans la voix du créateur s'il a rempli son profil.
+  const { data: profileRow } = await supabase
+    .from("creator_profiles")
+    .select("niche, audience, tone, platform, style_notes")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const profile = profileRow ? profileFromRow(profileRow) : null;
+
   let result: Awaited<ReturnType<typeof runTool>>;
   try {
-    result = await runTool(parsed.data);
+    result = await runTool(parsed.data, profile);
   } catch (error) {
     if (reserveFirst) credits = (await refundCredit(user.id)) ?? credits;
     console.error(`[generate] échec de l'outil "${parsed.data.tool}"`, error);

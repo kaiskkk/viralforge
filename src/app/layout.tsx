@@ -25,6 +25,12 @@ export const metadata: Metadata = {
     template: "%s · ViralForge",
   },
   description,
+  // Ajouté à l'écran d'accueil d'un iPhone, le site s'ouvre en plein écran.
+  appleWebApp: {
+    capable: true,
+    title: "ViralForge",
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     title: "ViralForge — Des scripts que personne ne swipe",
     description,
@@ -37,6 +43,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: "#08090a",
   colorScheme: "dark",
+  // Plein écran sur iPhone : les marges de sécurité (encoche, barre du bas)
+  // sont gérées avec env(safe-area-inset-*).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

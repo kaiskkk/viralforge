@@ -329,6 +329,30 @@ function verdictFor(total: number): string {
   return "À retravailler";
 }
 
+/** Débit moyen face caméra : environ 150 mots par minute. */
+const WORDS_PER_MINUTE = 150;
+
+/** Durée estimée d'un texte dit face caméra, en secondes. */
+export function speakingSeconds(text: string): number {
+  return Math.round((splitWords(text).length / WORDS_PER_MINUTE) * 60);
+}
+
+/** « 24 s » ou « 1 min 05 ». */
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes} min ${String(seconds % 60).padStart(2, "0")}`;
+}
+
+/**
+ * Force d'une accroche seule (0–100), avec le critère « Hook » du simulateur :
+ * longueur, question, chiffre, adresse directe, mots de curiosité.
+ */
+export function scoreHookLine(text: string): { score: number; insight: string } {
+  const { score, insight } = scoreHook(splitSentences(text));
+  return { score, insight };
+}
+
 /** Calcule le score viral d'un script. Renvoie null si le texte est trop court. */
 export function scoreScript(text: string): ViralScore | null {
   const words = splitWords(text);
@@ -367,8 +391,7 @@ export function scoreScript(text: string): ViralScore | null {
     stats: {
       words: words.length,
       sentences: sentences.length,
-      // Débit moyen face caméra : environ 150 mots par minute.
-      seconds: Math.round((words.length / 150) * 60),
+      seconds: Math.round((words.length / WORDS_PER_MINUTE) * 60),
     },
   };
 }

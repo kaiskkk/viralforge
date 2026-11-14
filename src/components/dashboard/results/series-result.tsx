@@ -3,10 +3,12 @@
 import { CornerDownRight } from "lucide-react";
 import { useState } from "react";
 
+import { ShootButton } from "@/components/dashboard/shoot-button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
 import type { SeriesOutput } from "@/lib/tools";
 import { cn } from "@/lib/utils";
+import { formatDuration, speakingSeconds } from "@/lib/viral-score";
 
 function seriesAsText(output: SeriesOutput): string {
   return output.episodes
@@ -71,9 +73,14 @@ export function SeriesResult({
       {episode && (
         <Card key={episode.day} className="animate-fade-up" role="tabpanel">
           <CardHeader
-            eyebrow={`Jour ${episode.day}`}
+            eyebrow={`Jour ${episode.day} · ≈ ${formatDuration(speakingSeconds(episode.script))} à l'oral`}
             title={episode.title}
-            actions={<CopyButton text={episode.script} />}
+            actions={
+              <>
+                <CopyButton text={episode.script} />
+                <ShootButton script={episode.script} title={`Jour ${episode.day} — ${episode.title}`} />
+              </>
+            }
           />
           <div className="space-y-5 px-5 py-5 sm:px-6">
             <div>

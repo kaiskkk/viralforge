@@ -1,18 +1,20 @@
 "use client";
 
-import { CircleAlert, LoaderCircle, Sparkles, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CircleAlert, LoaderCircle, Sparkles, UserRound, Zap } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 import { CheckoutLink } from "@/components/checkout-link";
 import { useCredits } from "@/components/dashboard/credits-context";
 import type { GenerateState } from "@/components/dashboard/use-generate";
 import { ToolIcon } from "@/components/tool-icon";
 import { Button, buttonClasses } from "@/components/ui/button";
+import { isProfileEmpty, profileSummary } from "@/lib/profile";
 import { TOOLS, type ToolId } from "@/lib/tools";
 
 /** En-tête commun aux pages d'outil. */
 export function ToolHeader({ tool }: { tool: ToolId }) {
-  const { plan } = useCredits();
+  const { plan, profile } = useCredits();
   const meta = TOOLS[tool];
 
   return (
@@ -26,9 +28,21 @@ export function ToolHeader({ tool }: { tool: ToolId }) {
           <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">{meta.tagline}</p>
         </div>
       </div>
-      <span className="hairline rounded-full bg-white/[0.03] px-3 py-1 text-xs text-muted">
-        {plan === "pro" ? "Illimité avec Pro" : "1 crédit par génération"}
-      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href="/dashboard/profile"
+          className="hairline inline-flex max-w-[260px] items-center gap-1.5 rounded-full bg-white/[0.03] px-3 py-1 text-xs text-muted transition-colors hover:text-fg"
+          title={isProfileEmpty(profile) ? undefined : "Ton profil créateur est appliqué à cet outil"}
+        >
+          <UserRound className={isProfileEmpty(profile) ? "size-3" : "size-3 text-accent"} aria-hidden />
+          <span className="truncate">
+            {isProfileEmpty(profile) || !profile ? "Ajoute ton profil créateur" : profileSummary(profile)}
+          </span>
+        </Link>
+        <span className="hairline rounded-full bg-white/[0.03] px-3 py-1 text-xs text-muted">
+          {plan === "pro" ? "Illimité avec Pro" : "1 crédit par génération"}
+        </span>
+      </div>
     </header>
   );
 }
@@ -153,14 +167,27 @@ export function ResultPanel<Result>({
   loadingSteps: string[];
   children: (result: Result) => React.ReactNode;
 }) {
-  switch (state.status) {
-    case "idle":
-      return <EmptyPanel tool={tool} hint={emptyHint} />;
-    case "loading":
-      return <LoadingPanel steps={loadingSteps} />;
-    case "error":
-      return <ErrorPanel code={state.code} message={state.message} />;
-    case "success":
-      return <div className="animate-fade-up">{children(state.result)}</div>;
-  }
+  const anchor = useRef<HTMLDivElement>(null);
+
+  // Sur une seule colonne (téléphone, tablette), le résultat est sous le
+  // formulaire : on l'amène à l'écran quand la génération démarre et aboutit.
+  useEffect(() => {
+    if (state.status === "idle") return;
+    if (window.matchMedia("(min-width: 1280px)").matches) return;
+    const element = anchor.current;
+    if (!element) return;
+    const { top } = element.getBoundingClientRect();
+    if (top >= 0 && top < window.innerHeight * 0.5) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }, [state.status]);
+
+  return (
+    <div ref={anchor} className="scroll-mt-20">
+      {state.status === "idle" && <EmptyPanel tool={tool} hint={emptyHint} />}
+      {state.status === "loading" && <LoadingPanel steps={loadingSteps} />}
+      {state.status === "error" && <ErrorPanel code={state.code} message={state.message} />}
+      {state.status === "success" && <div className="animate-fade-up">{children(state.result)}</div>}
+    </div>
+  );
 }
