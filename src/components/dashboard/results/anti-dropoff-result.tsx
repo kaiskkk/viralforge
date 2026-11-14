@@ -3,13 +3,15 @@
 import { useMemo, useRef, useState } from "react";
 
 import { ShootButton } from "@/components/dashboard/shoot-button";
+import { PlaceholderText } from "@/components/placeholder-text";
 import { BeforeAfterRetention } from "@/components/retention-report";
 import { Card, CardHeader } from "@/components/ui/card";
 import { CopyButton } from "@/components/ui/copy-button";
+import type { RetentionAnalysis } from "@/lib/retention";
 import type { AntiDropoffOutput, SegmentStatus } from "@/lib/tools";
 import { analyzeRetention } from "@/lib/retention";
 import { cn } from "@/lib/utils";
-import { formatDuration, speakingSeconds } from "@/lib/viral-score";
+import { formatDuration, speakingSeconds, splitSentences } from "@/lib/viral-score";
 
 const STATUS = {
   strong: { label: "Retient", badge: "", highlight: "" },
@@ -25,6 +27,25 @@ const STATUS = {
   },
 } satisfies Record<SegmentStatus, { label: string; badge: string; highlight: string }>;
 
+/**
+ * Aligne la gravité des passages signalés par l'IA sur la Courbe de rétention :
+ * une même phrase a la même couleur dans les deux outils. Un passage que l'IA
+ * juge solide reste tel quel (elle ne propose pas de réécriture).
+ */
+function harmonize(segments: AntiDropoffOutput["segments"], analysis: RetentionAnalysis | null) {
+  if (!analysis) return segments;
+  const counts = segments.map((segment) => splitSentences(segment.text).length);
+  if (counts.reduce((sum, count) => sum + count, 0) !== analysis.sentences.length) return segments;
+  let cursor = 0;
+  return segments.map((segment, index) => {
+    const levels = analysis.sentences.slice(cursor, cursor + counts[index]).map((sentence) => sentence.level);
+    cursor += counts[index];
+    if (segment.status === "strong") return segment;
+    const measured: SegmentStatus | null = levels.includes("drop") ? "critical" : levels.includes("warn") ? "slow" : null;
+    return measured ? { ...segment, status: measured } : segment;
+  });
+}
+
 function scoreTone(score: number) {
   if (score >= 70) return "text-accent";
   if (score >= 45) return "text-warn";
@@ -39,18 +60,19 @@ export function AntiDropoffResult({
   /** Actions supplémentaires de l'en-tête (ex. bouton Sauvegarder). */
   actions?: React.ReactNode;
 }) {
-  const issues = output.segments
+  const curves = useMemo(() => {
+    const before = analyzeRetention(output.segments.map((segment) => segment.text).join(" "));
+    const after = analyzeRetention(output.improvedScript);
+    return before && after ? { before, after } : null;
+  }, [output]);
+  const segments = useMemo(() => harmonize(output.segments, curves?.before ?? null), [output, curves]);
+  const issues = segments
     .map((segment, index) => ({ ...segment, index }))
     .filter((segment) => segment.status !== "strong");
   const slowCount = issues.filter((issue) => issue.status === "slow").length;
   const criticalCount = issues.length - slowCount;
 
   const [active, setActive] = useState<number | null>(issues[0]?.index ?? null);
-  const curves = useMemo(() => {
-    const before = analyzeRetention(output.segments.map((segment) => segment.text).join(" "));
-    const after = analyzeRetention(output.improvedScript);
-    return before && after ? { before, after } : null;
-  }, [output]);
   const cards = useRef(new Map<number, HTMLLIElement>());
 
   function focusIssue(index: number) {
@@ -60,24 +82,13 @@ export function AntiDropoffResult({
 
   return (
     <div className="space-y-5">
-      {/* Score */}
-      <Card className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5 sm:p-6">
-        <div>
-          <p className="text-[11px] uppercase tracking-widest text-faint">Rétention estimée</p>
-          <p className="mt-1 flex items-baseline gap-1.5">
-            <span
-              className={cn(
-                "font-mono text-5xl font-semibold leading-none tracking-tighter tabular-nums",
-                scoreTone(output.retentionScore),
-              )}
-            >
-              {output.retentionScore}
-            </span>
-            <span className="text-sm text-faint">/ 100</span>
-          </p>
-        </div>
-        <div className="min-w-[220px] flex-1">
-          <p className="text-sm leading-relaxed">{output.verdict}</p>
+      {/* Diagnostic : la rétention vient de la Courbe (mesure identique à chaque fois),
+          le verdict vient de l'IA. Sans courbe calculable, la note de l'IA prend le relais. */}
+      {curves ? (
+        <Card>
+          <div className="border-b border-white/[0.06] px-5 py-4 sm:px-6">
+            <p className="text-[11px] uppercase tracking-widest text-faint">Diagnostic</p>
+            <p className="mt-1.5 text-sm leading-relaxed">{output.verdict}</p>
           <p className="mt-2 flex flex-wrap gap-2 text-xs">
             <span className={cn("rounded-full px-2.5 py-1", STATUS.critical.badge)}>
               {criticalCount} décrochage{criticalCount > 1 ? "s" : ""}
@@ -86,15 +97,37 @@ export function AntiDropoffResult({
               {slowCount} passage{slowCount > 1 ? "s" : ""} lent{slowCount > 1 ? "s" : ""}
             </span>
           </p>
-        </div>
-      </Card>
-
-      {/* Courbe avant / après */}
-      {curves && (
-        <Card>
-          <CardHeader eyebrow="Courbe de rétention estimée" title="Avant et après la réécriture" />
+          </div>
           <div className="px-3 py-4 sm:px-5">
             <BeforeAfterRetention before={curves.before} after={curves.after} />
+          </div>
+        </Card>
+      ) : (
+        <Card className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5 sm:p-6">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-faint">Rétention estimée</p>
+            <p className="mt-1 flex items-baseline gap-1.5">
+              <span
+                className={cn(
+                  "font-mono text-5xl font-semibold leading-none tracking-tighter tabular-nums",
+                  scoreTone(output.retentionScore),
+                )}
+              >
+                {output.retentionScore}
+              </span>
+              <span className="text-sm text-faint">/ 100</span>
+            </p>
+          </div>
+          <div className="min-w-[220px] flex-1">
+            <p className="text-sm leading-relaxed">{output.verdict}</p>
+            <p className="mt-2 flex flex-wrap gap-2 text-xs">
+              <span className={cn("rounded-full px-2.5 py-1", STATUS.critical.badge)}>
+                {criticalCount} décrochage{criticalCount > 1 ? "s" : ""}
+              </span>
+              <span className={cn("rounded-full px-2.5 py-1", STATUS.slow.badge)}>
+                {slowCount} passage{slowCount > 1 ? "s" : ""} lent{slowCount > 1 ? "s" : ""}
+              </span>
+            </p>
           </div>
         </Card>
       )}
@@ -105,12 +138,12 @@ export function AntiDropoffResult({
           eyebrow="Ton script, annoté"
           title={
             issues.length > 0
-              ? "Clique sur un passage surligné pour voir sa réécriture"
+              ? "Appuie sur un passage surligné pour voir sa réécriture"
               : "Aucun passage à corriger"
           }
         />
         <p className="whitespace-pre-wrap px-5 py-5 text-[15px] leading-[1.9] sm:px-6">
-          {output.segments.map((segment, index) =>
+          {segments.map((segment, index) =>
             segment.status === "strong" ? (
               <span key={index}>{segment.text} </span>
             ) : (
@@ -169,7 +202,7 @@ export function AntiDropoffResult({
               {issue.reason && <p className="mt-2 text-[13px] leading-relaxed text-muted">{issue.reason}</p>}
               {issue.rewrite && (
                 <p className="mt-3 rounded-lg border border-accent/20 bg-accent/[0.05] px-3.5 py-2.5 text-sm leading-relaxed">
-                  {issue.rewrite}
+                  <PlaceholderText text={issue.rewrite} />
                 </p>
               )}
             </li>
@@ -191,8 +224,14 @@ export function AntiDropoffResult({
           }
         />
         <p className="whitespace-pre-wrap px-5 py-5 text-[15px] leading-[1.75] sm:px-6">
-          {output.improvedScript}
+          <PlaceholderText text={output.improvedScript} />
         </p>
+        {output.improvedScript.includes("[") && (
+          <p className="border-t border-white/[0.06] px-5 py-3 text-[12px] leading-relaxed text-muted sm:px-6">
+            Remplace chaque <span className="rounded bg-warn/15 px-1 text-warn">[X]</span> par ton vrai chiffre : ViralForge
+            n&apos;invente pas de montants ni de statistiques à ta place.
+          </p>
+        )}
       </Card>
     </div>
   );

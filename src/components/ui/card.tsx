@@ -18,7 +18,7 @@ export function CardHeader({
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] px-5 py-4 sm:px-6">
       <div className="min-w-0">
         {eyebrow && <p className="text-[11px] uppercase tracking-widest text-faint">{eyebrow}</p>}
-        <h2 className={cn("truncate text-[15px] font-semibold tracking-tight", eyebrow && "mt-1")}>
+        <h2 className={cn("break-words text-[15px] font-semibold tracking-tight", eyebrow && "mt-1")}>
           {title}
         </h2>
       </div>

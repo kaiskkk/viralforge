@@ -69,7 +69,9 @@ export async function handleGeneration(body: unknown): Promise<NextResponse> {
   const context: GenerationContext =
     parsed.data.tool === "blueprint"
       ? { video: parsed.data.input.url ? await fetchVideoSource(parsed.data.input.url) : NO_VIDEO_SOURCE }
-      : {};
+      : parsed.data.tool === "antidropoff"
+        ? { sourceText: parsed.data.input.script }
+        : {};
 
   let result: Awaited<ReturnType<typeof runTool>>;
   try {

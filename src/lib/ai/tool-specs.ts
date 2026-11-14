@@ -5,6 +5,7 @@
 
 import type { z } from "zod";
 
+import { maskInventedNumbers } from "@/lib/figures";
 import type { CreatorProfile } from "@/lib/profile";
 import { startsWithSlowOpener, stripLeadingGreetings } from "@/lib/viral-score";
 
@@ -115,10 +116,14 @@ export function finalizeOutput<Tool extends GenerateRequest["tool"]>(
         rewrite: weakRewrite ? null : segment.rewrite,
       };
     });
+    // Une réécriture n'invente pas de chiffres : ceux absents du script d'origine
+    // deviennent [X], à compléter par le créateur.
+    const source = context.sourceText ?? result.segments.map((segment) => segment.text).join(" ");
+    const mask = (text: string) => maskInventedNumbers(text, source);
     return {
       ...result,
-      segments,
-      improvedScript: stripLeadingGreetings(result.improvedScript),
+      segments: segments.map((segment) => (segment.rewrite ? { ...segment, rewrite: mask(segment.rewrite) } : segment)),
+      improvedScript: mask(stripLeadingGreetings(result.improvedScript)),
       retentionScore: clampScore(result.retentionScore),
     } as ToolOutputs[Tool];
   }

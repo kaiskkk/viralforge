@@ -1,6 +1,7 @@
 import { ExternalLink, Eye, Info, MessageSquareQuote, Scissors } from "lucide-react";
 
 import { VideoThumbnail } from "@/components/dashboard/results/video-thumbnail";
+import { PlaceholderText } from "@/components/placeholder-text";
 import { SingleRetentionChart } from "@/components/retention-report";
 import { ShootButton } from "@/components/dashboard/shoot-button";
 import { ToolIcon } from "@/components/tool-icon";
@@ -116,7 +117,7 @@ export function BlueprintResult({
             title="Ton script, adapté à ta niche"
           />
           <p className="flex-1 whitespace-pre-wrap px-5 py-5 text-[15px] leading-[1.75] sm:px-6" data-testid="blueprint-script">
-            {output.script}
+            <PlaceholderText text={output.script} />
           </p>
           <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] px-5 py-4 sm:px-6">
             <CopyButton text={output.script} label="Copier le script" variant="primary" />

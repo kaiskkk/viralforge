@@ -316,7 +316,11 @@ export type ToolOutputs = {
 export type ToolModelOutputs = Omit<ToolOutputs, "blueprint"> & { blueprint: BlueprintModelOutput };
 
 /** Données préparées par le serveur avant la génération. */
-export type GenerationContext = { video?: VideoSource };
+export type GenerationContext = {
+  video?: VideoSource;
+  /** Texte fourni par le créateur : les chiffres absents de ce texte sont masqués. */
+  sourceText?: string;
+};
 
 export const TOOL_OUTPUT_SCHEMAS = {
   clone: cloneOutputSchema,
