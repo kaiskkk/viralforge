@@ -3,7 +3,8 @@ import type { Plan } from "@/types/database";
 /** Crédits offerts à l'inscription. Doit rester aligné sur le DEFAULT de `credits.balance`. */
 export const FREE_CREDITS = 3;
 
-export const PRO_PRICE = process.env.NEXT_PUBLIC_PRO_PRICE ?? "19 €";
+/** Prix du plan Whop (plan_CPkJSKD2HKOZP : 19,99 € par mois, taxes en sus). */
+export const PRO_PRICE = process.env.NEXT_PUBLIC_PRO_PRICE || "19,99 €";
 
 /**
  * Lien de paiement du plan Pro (page de paiement Whop). Tous les boutons
