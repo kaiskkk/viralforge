@@ -12,6 +12,8 @@ import { safeNextPath } from "@/lib/utils";
 export type AuthState = {
   error?: string;
   notice?: string;
+  /** Présent quand l'inscription attend un code de vérification. */
+  verifyEmail?: string;
 };
 
 const credentialsSchema = z.object({
@@ -123,13 +125,59 @@ export async function signup(_previous: AuthState, formData: FormData): Promise<
   });
   if (error) return { error: describeError(error) };
 
-  // Sans session, la confirmation par e-mail est activée dans Supabase.
+  // Sans session, la confirmation par e-mail est activée dans Supabase :
+  // un code de vérification vient d'être envoyé, on passe à l'étape de saisie.
   if (!data.session) {
-    return {
-      notice: "Compte créé. Clique sur le lien reçu par e-mail pour l'activer.",
-    };
+    return { verifyEmail: parsed.data.email };
   }
 
   revalidatePath("/", "layout");
   redirect(next);
+}
+
+const codeSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Adresse e-mail invalide."),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Le code est composé de 6 chiffres."),
+});
+
+/** Vérifie le code à 6 chiffres reçu par e-mail et ouvre la session. */
+export async function verifySignupCode(_previous: AuthState, formData: FormData): Promise<AuthState> {
+  if (!isSupabaseConfigured) return { error: NOT_CONFIGURED };
+
+  const parsed = codeSchema.safeParse({ email: formData.get("email"), code: formData.get("code") });
+  if (!parsed.success) {
+    return { verifyEmail: String(formData.get("email") ?? ""), error: parsed.error.issues[0]?.message };
+  }
+
+  const { error } = await createClient().auth.verifyOtp({
+    email: parsed.data.email,
+    token: parsed.data.code,
+    type: "signup",
+  });
+  if (error) {
+    const known = error.code ? ERROR_MESSAGES[error.code] : undefined;
+    return {
+      verifyEmail: parsed.data.email,
+      error: known ?? "Code incorrect ou expiré. Vérifie-le ou demande-en un nouveau.",
+    };
+  }
+
+  revalidatePath("/", "layout");
+  redirect(safeNextPath(formData.get("next")));
+}
+
+/** Renvoie un nouveau code de vérification d'inscription. */
+export async function resendSignupCode(_previous: AuthState, formData: FormData): Promise<AuthState> {
+  if (!isSupabaseConfigured) return { error: NOT_CONFIGURED };
+  const email = z.string().trim().toLowerCase().email().safeParse(formData.get("email"));
+  if (!email.success) return { verifyEmail: String(formData.get("email") ?? ""), error: "Adresse e-mail invalide." };
+
+  const { error } = await createClient().auth.resend({ type: "signup", email: email.data });
+  if (error && error.code && ERROR_MESSAGES[error.code]) {
+    return { verifyEmail: email.data, error: ERROR_MESSAGES[error.code] };
+  }
+  return { verifyEmail: email.data, notice: "Nouveau code envoyé. Regarde ta boîte mail (et les spams)." };
 }

@@ -94,6 +94,13 @@ outils demandent la configuration ci-dessous.
    Supabase n'écrit qu'aux membres du projet. Désactive « Confirm email », ou branche un
    SMTP (Resend, Brevo…) pour garder la confirmation.
 
+   **Code de vérification à l'inscription (optionnel).** L'inscription gère un code à
+   6 chiffres : si « Confirm email » est activé, l'app affiche un écran de saisie du code
+   (`verifyOtp`, `src/components/auth/auth-form.tsx`). Pour que ce soit un *code* et non un
+   lien, édite le modèle **Authentication → Email Templates → Confirm signup** pour inclure
+   `{{ .Token }}`. Sans SMTP configuré, les codes ne partent pas : garde « Confirm email »
+   désactivé jusque-là (l'inscription reste alors instantanée, sans code).
+
 La confirmation par e-mail est gérée : si elle est activée, l'utilisateur reçoit un lien qui
 revient sur `/auth/callback`.
 

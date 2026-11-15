@@ -6,6 +6,7 @@ import { Faq } from "@/components/marketing/faq";
 import { PricingCards } from "@/components/marketing/pricing-cards";
 import { ToolsShowcase } from "@/components/marketing/tools-showcase";
 import { ViralSimulator } from "@/components/marketing/viral-simulator";
+import { Reveal } from "@/components/reveal";
 import { buttonClasses } from "@/components/ui/button";
 import { CHECKOUT_URL, FREE_CREDITS } from "@/lib/plans";
 
@@ -34,7 +35,7 @@ export default function LandingPage() {
       <section className="relative overflow-hidden">
         <div className="bg-grid pointer-events-none absolute inset-0" aria-hidden />
         <div
-          className="pointer-events-none absolute left-1/2 top-[-280px] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-accent/[0.13] blur-[130px]"
+          className="pointer-events-none absolute left-1/2 top-[-280px] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-accent/[0.13] blur-[130px] motion-safe:animate-float-slow"
           aria-hidden
         />
 
@@ -44,7 +45,7 @@ export default function LandingPage() {
               href="/signup"
               className="hairline inline-flex animate-fade-up items-center gap-2 rounded-full bg-white/[0.04] px-3.5 py-1.5 text-[13px] text-muted transition-colors hover:text-fg"
             >
-              <span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_rgb(var(--accent))]" />
+              <span className="size-1.5 rounded-full bg-accent shadow-[0_0_8px_rgb(var(--accent))] motion-safe:animate-pulse" />
               {FREE_CREDITS} crédits offerts, sans carte bancaire
               <ArrowRight className="size-3.5" aria-hidden />
             </Link>
@@ -88,27 +89,35 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <BeyondChatbot />
+      <Reveal>
+        <BeyondChatbot />
+      </Reveal>
 
-      <ToolsShowcase />
+      <Reveal>
+        <ToolsShowcase />
+      </Reveal>
 
       {/* Fonctionnement */}
       <section className="border-y border-white/[0.06] bg-white/[0.012] py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-5">
-          <h2 className="text-3xl font-semibold tracking-tightest sm:text-[40px]">
-            <span className="text-gradient">Du brouillon au script qui tient.</span>
-          </h2>
+          <Reveal>
+            <h2 className="text-3xl font-semibold tracking-tightest sm:text-[40px]">
+              <span className="text-gradient">Du brouillon au script qui tient.</span>
+            </h2>
+          </Reveal>
           <ol className="mt-12 grid gap-10 md:grid-cols-3">
             {STEPS.map((step, index) => (
               <li key={step.title}>
-                <div className="flex items-center gap-3">
-                  <span className="hairline grid size-10 place-items-center rounded-xl bg-surface text-accent">
-                    <step.icon className="size-[18px]" aria-hidden />
-                  </span>
-                  <span className="font-mono text-xs text-faint">0{index + 1}</span>
-                </div>
-                <h3 className="mt-5 text-base font-semibold tracking-tight">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{step.text}</p>
+                <Reveal delay={index * 120} className="group">
+                  <div className="flex items-center gap-3">
+                    <span className="hairline grid size-10 place-items-center rounded-xl bg-surface text-accent transition-transform duration-300 group-hover:-translate-y-1 group-hover:scale-105">
+                      <step.icon className="size-[18px]" aria-hidden />
+                    </span>
+                    <span className="font-mono text-xs text-faint">0{index + 1}</span>
+                  </div>
+                  <h3 className="mt-5 text-base font-semibold tracking-tight">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{step.text}</p>
+                </Reveal>
               </li>
             ))}
           </ol>
@@ -118,7 +127,7 @@ export default function LandingPage() {
       {/* Tarifs */}
       <section className="py-16 sm:py-24">
         <div className="mx-auto max-w-6xl px-5">
-          <div className="mx-auto max-w-xl text-center">
+          <Reveal className="mx-auto max-w-xl text-center">
             <h2 className="text-3xl font-semibold tracking-tightest sm:text-[40px]">
               <span className="text-gradient">Commence gratuitement.</span>
             </h2>
@@ -126,13 +135,13 @@ export default function LandingPage() {
               {FREE_CREDITS} scripts IA offerts pour juger sur pièces, et les outils de mesure gratuits
               pour toujours. Passe en Pro quand tu publies souvent.
             </p>
-          </div>
-          <div className="mt-12">
+          </Reveal>
+          <Reveal delay={120} className="mt-12">
             <PricingCards
               free={{ label: "Créer un compte gratuit", href: "/signup" }}
               pro={{ label: "Passer en Pro", href: CHECKOUT_URL, external: true }}
             />
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -143,18 +152,18 @@ export default function LandingPage() {
       {/* Appel final */}
       <section className="relative overflow-hidden border-t border-white/[0.06] py-20 sm:py-28">
         <div
-          className="pointer-events-none absolute bottom-[-320px] left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-accent/[0.12] blur-[130px]"
+          className="pointer-events-none absolute bottom-[-320px] left-1/2 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-accent/[0.12] blur-[130px] motion-safe:animate-float"
           aria-hidden
         />
-        <div className="relative mx-auto max-w-2xl px-5 text-center">
+        <Reveal className="relative mx-auto max-w-2xl px-5 text-center">
           <h2 className="text-4xl font-semibold leading-[1.08] tracking-tightest sm:text-5xl">
             <span className="text-gradient">Ton prochain script mérite d&apos;être regardé jusqu&apos;au bout.</span>
           </h2>
-          <Link href="/signup" className={buttonClasses({ size: "lg", className: "mt-9" })}>
+          <Link href="/signup" className={buttonClasses({ size: "lg", className: "mt-9 transition-transform hover:scale-[1.03]" })}>
             Commencer avec {FREE_CREDITS} crédits offerts
-            <ArrowRight className="size-4" aria-hidden />
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </Link>
-        </div>
+        </Reveal>
       </section>
     </>
   );

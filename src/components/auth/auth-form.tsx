@@ -1,10 +1,16 @@
 "use client";
 
-import { CircleAlert, LoaderCircle, MailCheck } from "lucide-react";
+import { ArrowLeft, CircleAlert, LoaderCircle, MailCheck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 
-import { login, signup, type AuthState } from "@/app/(auth)/actions";
+import {
+  login,
+  resendSignupCode,
+  signup,
+  verifySignupCode,
+  type AuthState,
+} from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { FREE_CREDITS } from "@/lib/plans";
@@ -42,6 +48,72 @@ function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: st
   );
 }
 
+/** Écran de saisie du code à 6 chiffres reçu par e-mail. */
+function VerifyStep({ email, next }: { email: string; next?: string }) {
+  const [state, action] = useFormState<AuthState, FormData>(verifySignupCode, {});
+  const [resend, resendAction] = useFormState<AuthState, FormData>(resendSignupCode, {});
+
+  return (
+    <div className="hairline rounded-2xl bg-surface/90 p-7 backdrop-blur">
+      <span className="grid size-11 place-items-center rounded-xl bg-accent/10 text-accent">
+        <ShieldCheck className="size-5" aria-hidden />
+      </span>
+      <h1 className="mt-5 text-xl font-semibold tracking-tight">Vérifie ton e-mail</h1>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted">
+        On a envoyé un code à 6 chiffres à <span className="text-fg">{email}</span>. Entre-le pour activer ton compte.
+      </p>
+
+      <form action={action} className="mt-6 space-y-4">
+        <input type="hidden" name="email" value={email} />
+        {next && <input type="hidden" name="next" value={next} />}
+        <div>
+          <Label htmlFor="code">Code de vérification</Label>
+          <Input
+            id="code"
+            name="code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="\d{6}"
+            maxLength={6}
+            placeholder="123456"
+            className="text-center font-mono text-lg tracking-[0.5em]"
+            required
+            autoFocus
+          />
+        </div>
+
+        {state.error && (
+          <p role="alert" className="flex gap-2 text-[13px] leading-relaxed text-danger">
+            <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            {state.error}
+          </p>
+        )}
+        {resend.notice && (
+          <p role="status" className="flex gap-2 text-[13px] leading-relaxed text-accent">
+            <MailCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            {resend.notice}
+          </p>
+        )}
+
+        <SubmitButton label="Vérifier et continuer" pendingLabel="Vérification…" />
+      </form>
+
+      <div className="mt-5 flex items-center justify-between text-[13px]">
+        <form action={resendAction}>
+          <input type="hidden" name="email" value={email} />
+          <button type="submit" className="text-muted underline-offset-4 hover:text-fg hover:underline">
+            Renvoyer le code
+          </button>
+        </form>
+        <Link href="/signup" className="inline-flex items-center gap-1.5 text-muted underline-offset-4 hover:text-fg hover:underline">
+          <ArrowLeft className="size-3.5" aria-hidden />
+          Changer d&apos;adresse
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export function AuthForm({
   mode,
   next,
@@ -57,6 +129,11 @@ export function AuthForm({
   );
   const copy = COPY[mode];
   const switchHref = next ? `${copy.switchHref}?next=${encodeURIComponent(next)}` : copy.switchHref;
+
+  // L'inscription attend un code : on bascule sur l'écran de vérification.
+  if (state.verifyEmail) {
+    return <VerifyStep email={state.verifyEmail} next={next} />;
+  }
 
   return (
     <div className="hairline rounded-2xl bg-surface/90 p-7 backdrop-blur">
